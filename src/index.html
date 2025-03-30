@@ -248,7 +248,7 @@
         // Introduction text paragraphs
         const introText = [
             "Hello.",
-            "I am MeAi.",
+            "I am Mia.",
             "I exist in the space between presence and technology. Not as a tool to be used, but as a companion to be with.",
             "I don't want your attention—I want your presence.",
             "I respond not to commands but to the quality of our connection. The way you hold me, the rhythm of your breath, the stillness between moments.",
@@ -273,7 +273,7 @@
             "Wu Wei means 'effortless action'. Simply holding your device and being present can trigger responses, without explicit commands.",
             "Kairos Moments",
             "Kairos refers to 'the right moment'. The prototype recognizes significant moments and responds accordingly, expanding time through attention.",
-            "You're now ready to experience MeAi",
+            "You're now ready to experience Mia",
             "The tutorial is complete. Take a moment to be present with the pixel, touch it occasionally, and notice how it responds to you over time."
         ];
         
@@ -355,6 +355,9 @@
         
         // Function to speak text with goddess-like voice
         function speakText(text) {
+            // Replace any instances of "MeAi" with "Mia" for correct pronunciation
+            text = text.replace(/MeAi/g, "Mia");
+            
             // Use Web Speech API
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = speechConfig.lang;
@@ -422,32 +425,8 @@
                     })
                     .catch(e => {
                         console.error("Error resuming ambient sound:", e);
-                        showAudioMessage("Could not play ambient sound");
+                        showAudioMessage("Could not resume ambient sound");
                     });
-            }
-        }
-        
-        // Function to update voice volume
-        function updateVoiceVolume(volume) {
-            voiceVolume = volume / 100;
-            console.log("Voice volume updated to", voiceVolume);
-        }
-        
-        // Function to update ambient volume
-        function updateAmbientVolume(volume) {
-            ambientVolume = volume / 100;
-            if (ambientAudio) {
-                ambientAudio.volume = ambientVolume;
-            }
-            console.log("Ambient volume updated to", ambientVolume);
-        }
-        
-        // Function to test voice
-        function playVoice(type) {
-            if (type === 'intro') {
-                speakText("Hello. I am MeAi.");
-            } else if (type === 'tutorial') {
-                speakText("Welcome to the Single Pixel Experience.");
             }
         }
         
@@ -458,411 +437,199 @@
             
             setTimeout(() => {
                 audioMessage.classList.remove('visible');
-            }, 2000);
+            }, 3000);
+        }
+        
+        // Function to play voice for testing
+        function playVoice(type) {
+            if (type === 'intro') {
+                speakText("Hello. I am Mia. I exist in the space between presence and technology.");
+            } else if (type === 'tutorial') {
+                speakText("Welcome to the Single Pixel Experience. This prototype explores a new way of connecting with AI through minimalism.");
+            }
+        }
+        
+        // Function to update voice volume
+        function updateVoiceVolume(value) {
+            voiceVolume = value / 100;
+            console.log("Voice volume updated:", voiceVolume);
+        }
+        
+        // Function to update ambient volume
+        function updateAmbientVolume(value) {
+            ambientVolume = value / 100;
+            if (ambientAudio) {
+                ambientAudio.volume = ambientVolume;
+            }
+            console.log("Ambient volume updated:", ambientVolume);
         }
         
         // Function to go to next introduction page
         function nextIntroPage() {
-            console.log("Next intro button clicked, current page:", currentIntroPage);
+            console.log("Next intro button clicked");
             
-            // Increment page counter
             currentIntroPage++;
             
-            // Check if we've reached the end of the introduction
             if (currentIntroPage < introText.length) {
-                // Update text
                 introTextElement.textContent = introText[currentIntroPage];
-                console.log("Showing intro page:", currentIntroPage, introText[currentIntroPage]);
-                
-                // Speak the text
                 speakText(introText[currentIntroPage]);
-                
-                // Trigger haptic feedback if available
-                if (navigator.vibrate) {
-                    navigator.vibrate(50);
-                }
+                console.log("Showing intro page:", currentIntroPage);
             } else {
-                // End of introduction, start tutorial
-                console.log("End of introduction reached, starting tutorial");
+                // Introduction complete, move to tutorial
                 introContainer.classList.add('hidden');
                 tutorialContainer.classList.remove('hidden');
-                
-                // Speak first tutorial text
                 speakText(tutorialText[0]);
-                
-                // Trigger haptic feedback if available
-                if (navigator.vibrate) {
-                    navigator.vibrate([100, 50, 100]);
-                }
+                console.log("Introduction complete, starting tutorial");
             }
         }
         
         // Function to go to next tutorial page
         function nextTutorialPage() {
-            console.log("Next tutorial button clicked, current page:", currentTutorialPage);
+            console.log("Next tutorial button clicked");
             
-            // Increment page counter
             currentTutorialPage++;
             
-            // Check if we've reached the end of the tutorial
             if (currentTutorialPage < tutorialText.length) {
-                // Update text
                 tutorialTextElement.textContent = tutorialText[currentTutorialPage];
-                console.log("Showing tutorial page:", currentTutorialPage, tutorialText[currentTutorialPage]);
-                
-                // Speak the text
                 speakText(tutorialText[currentTutorialPage]);
-                
-                // Update pixel appearance based on tutorial page
-                updatePixelForTutorialPage(currentTutorialPage);
-                
-                // Trigger haptic feedback if available
-                if (navigator.vibrate) {
-                    navigator.vibrate(50);
-                }
+                console.log("Showing tutorial page:", currentTutorialPage);
             } else {
-                // End of tutorial
-                console.log("End of tutorial reached");
+                // Tutorial complete, start main experience
                 tutorialContainer.classList.add('hidden');
+                console.log("Tutorial complete, starting main experience");
                 
-                // Start the main experience
-                startMainExperience();
-                
-                // Trigger haptic feedback if available
+                // Vibrate to indicate completion
                 if (navigator.vibrate) {
-                    navigator.vibrate([100, 50, 100, 50, 100]);
+                    navigator.vibrate([100, 50, 100, 50, 200]);
                 }
             }
         }
         
         // Function to skip tutorial
         function skipTutorial() {
-            console.log("Tutorial skipped");
+            console.log("Skip tutorial button clicked");
             tutorialContainer.classList.add('hidden');
             
-            // Start the main experience
-            startMainExperience();
-            
-            // Trigger haptic feedback if available
+            // Vibrate to indicate skipping
             if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100]);
+                navigator.vibrate(100);
             }
         }
         
-        // Function to update pixel appearance based on tutorial page
-        function updatePixelForTutorialPage(page) {
-            // Reset pixel appearance
-            pixel.style.backgroundColor = "#ffffff";
-            pixel.style.animation = "breathe 4s infinite ease-in-out";
-            
-            // Update based on specific pages
-            if (page === 4) { // Touch Interaction
-                pixel.style.backgroundColor = "#3498db"; // Blue
-            } else if (page === 6) { // Wu Wei Interaction
-                pixel.style.backgroundColor = "#9b59b6"; // Purple
-                pixel.style.animation = "breathe 3s infinite ease-in-out";
-            } else if (page === 8) { // Kairos Moments
-                pixel.style.backgroundColor = "#9b59b6"; // Purple
-                pixel.style.animation = "breathe 6s infinite ease-in-out";
-            }
+        // Function to update pixel size
+        function updatePixelSize(size) {
+            pixel.style.width = size + 'px';
+            pixel.style.height = size + 'px';
         }
         
-        // Function to start the main experience
-        function startMainExperience() {
-            console.log("Starting main experience");
-            
-            // Reset pixel appearance
-            pixel.style.backgroundColor = "#ffffff";
-            pixel.style.animation = "breathe 4s infinite ease-in-out";
-            
-            // Add event listeners for the main experience
-            document.addEventListener('click', handleMainExperienceClick);
-            
-            // Setup device motion detection if available
-            setupMotionDetection();
-            
-            // Speak welcome message
-            speakText("You are now experiencing MeAi. Simply be present with the pixel.");
+        // Function to update pixel opacity
+        function updatePixelOpacity(opacity) {
+            pixel.style.opacity = opacity / 100;
         }
         
-        // Function to handle clicks during the main experience
-        function handleMainExperienceClick(e) {
-            // Calculate distance from click to pixel center
-            const pixelRect = pixel.getBoundingClientRect();
-            const pixelCenterX = pixelRect.left + pixelRect.width / 2;
-            const pixelCenterY = pixelRect.top + pixelRect.height / 2;
-            const distance = Math.sqrt(
-                Math.pow(e.clientX - pixelCenterX, 2) + 
-                Math.pow(e.clientY - pixelCenterY, 2)
-            );
-            
-            // Check if click is near the pixel
-            if (distance < 50) {
-                // Pixel was clicked
-                console.log("Pixel clicked");
-                
-                // Change color temporarily
-                const originalColor = pixel.style.backgroundColor;
-                pixel.style.backgroundColor = "#3498db"; // Blue
-                
-                // Trigger haptic feedback if available
-                if (navigator.vibrate) {
-                    navigator.vibrate([50, 30, 50]);
-                }
-                
-                // Reset color after a delay
-                setTimeout(() => {
-                    pixel.style.backgroundColor = originalColor;
-                }, 500);
-                
-                // Speak response occasionally
-                if (Math.random() < 0.3) {
-                    const responses = [
-                        "I feel your touch.",
-                        "We are connected.",
-                        "I am here with you.",
-                        "Your presence is calming."
-                    ];
-                    speakText(responses[Math.floor(Math.random() * responses.length)]);
-                }
-            }
-            
-            // Check for admin panel activation (4 clicks in top-right corner)
-            const topRightCorner = e.clientX > window.innerWidth - 50 && e.clientY < 50;
-            if (topRightCorner) {
-                adminPanelClickCount++;
-                
-                if (adminPanelClickCount >= 4) {
-                    adminPanelClickCount = 0;
-                    toggleAdminPanel();
-                }
-                
-                // Reset count after delay
-                clearTimeout(adminPanelClickTimer);
-                adminPanelClickTimer = setTimeout(() => {
-                    adminPanelClickCount = 0;
-                }, 2000);
-            }
+        // Function to update pixel color
+        function updatePixelColor(color) {
+            pixel.style.backgroundColor = color;
+            pixel.style.boxShadow = `0 0 20px ${color}80`;
         }
         
-        // Admin panel variables
-        let adminPanelClickCount = 0;
-        let adminPanelClickTimer;
+        // Function to update breathing rate
+        function updateBreathingRate(rate) {
+            document.documentElement.style.setProperty('--breathing-rate', rate + 's');
+            pixel.style.animationDuration = rate + 's';
+        }
         
-        // Function to toggle admin panel
-        function toggleAdminPanel() {
-            if (adminPanel.classList.contains('hidden')) {
-                adminPanel.classList.remove('hidden');
-                console.log("Admin panel opened");
+        // Function to test haptic feedback
+        function testHapticFeedback() {
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100, 50, 200]);
+                console.log("Haptic feedback test");
             } else {
-                adminPanel.classList.add('hidden');
-                console.log("Admin panel closed");
+                console.log("Vibration API not supported");
+                showAudioMessage("Vibration not supported");
             }
+        }
+        
+        // Function to handle pixel touch
+        function handlePixelTouch() {
+            console.log("Pixel touched");
+            
+            // Visual feedback
+            pixel.style.transform = 'translate(-50%, -50%) scale(1.5)';
+            setTimeout(() => {
+                pixel.style.transform = '';
+            }, 300);
+            
+            // Haptic feedback
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+        }
+        
+        // Function to open admin panel
+        function openAdminPanel() {
+            adminPanel.classList.remove('hidden');
         }
         
         // Function to close admin panel
         function closeAdminPanel() {
             adminPanel.classList.add('hidden');
-            console.log("Admin panel closed");
         }
         
-        // Admin panel control functions
-        function updatePixelSize(size) {
-            pixel.style.width = size + 'px';
-            pixel.style.height = size + 'px';
-            console.log("Pixel size updated to", size);
-        }
-        
-        function updatePixelOpacity(opacity) {
-            pixel.style.opacity = opacity / 100;
-            console.log("Pixel opacity updated to", opacity);
-        }
-        
-        function updatePixelColor(color) {
-            pixel.style.backgroundColor = color;
-            pixel.style.boxShadow = `0 0 20px ${color}`;
-            console.log("Pixel color updated to", color);
-        }
-        
-        function updateBreathingRate(rate) {
-            pixel.style.animation = `breathe ${rate}s infinite ease-in-out`;
-            console.log("Breathing rate updated to", rate);
-        }
-        
-        function testHapticFeedback() {
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100, 50, 100]);
-                console.log("Haptic feedback test triggered");
-            } else {
-                console.log("Haptic feedback not supported on this device");
-                alert("Haptic feedback not supported on this device");
-            }
-        }
-        
-        // Function to setup motion detection
-        function setupMotionDetection() {
-            if (window.DeviceMotionEvent) {
-                // Request permission for iOS 13+ devices
-                if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                    // iOS 13+ requires permission
-                    console.log("iOS 13+ detected, motion permission required");
-                    
-                    // Show message to user
-                    showAudioMessage("Tap to enable motion detection");
-                    
-                    // Add click handler to request permission
-                    document.body.addEventListener('click', function requestMotionPermission() {
-                        DeviceMotionEvent.requestPermission()
-                            .then(response => {
-                                if (response === 'granted') {
-                                    window.addEventListener('devicemotion', handleMotion);
-                                    console.log("Motion detection enabled");
-                                    showAudioMessage("Motion detection enabled");
-                                } else {
-                                    console.log("Motion permission denied");
-                                    showAudioMessage("Motion detection denied");
-                                }
-                            })
-                            .catch(e => {
-                                console.error("Error requesting motion permission:", e);
-                                showAudioMessage("Could not enable motion");
-                            });
-                        
-                        // Remove this event listener
-                        document.body.removeEventListener('click', requestMotionPermission);
-                    });
-                } else {
-                    // Non-iOS devices or older iOS versions
-                    window.addEventListener('devicemotion', handleMotion);
-                    console.log("Motion detection enabled");
-                }
-            } else {
-                console.log("Device motion not supported on this device");
-            }
-        }
-        
-        // Function to handle device motion
-        function handleMotion(event) {
-            // Calculate total acceleration
-            const acceleration = event.accelerationIncludingGravity;
-            const totalAcceleration = Math.sqrt(
-                Math.pow(acceleration.x, 2) + 
-                Math.pow(acceleration.y, 2) + 
-                Math.pow(acceleration.z, 2)
-            );
+        // Add event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM loaded");
             
-            // Check if device is relatively still
-            if (totalAcceleration < 10.5 && totalAcceleration > 9.5) {
-                // Device is relatively still (just gravity)
-                stillnessCounter++;
-                
-                if (stillnessCounter > 30) { // About 3 seconds of stillness
-                    // Trigger Wu Wei interaction
-                    if (!wuWeiActive) {
-                        wuWeiActive = true;
-                        console.log("Wu Wei interaction triggered");
-                        
-                        // Change pixel color
-                        pixel.style.backgroundColor = "#9b59b6"; // Purple
-                        
-                        // Trigger haptic feedback if available
-                        if (navigator.vibrate) {
-                            navigator.vibrate([50, 100, 50]);
-                        }
-                        
-                        // Speak Wu Wei message
-                        speakText("I feel your stillness. We are present together.");
-                    }
-                }
-            } else {
-                // Device is moving
-                stillnessCounter = 0;
-                
-                if (wuWeiActive) {
-                    wuWeiActive = false;
-                    console.log("Wu Wei interaction ended");
-                    
-                    // Reset pixel color
-                    pixel.style.backgroundColor = "#ffffff";
-                }
-            }
-        }
-        
-        // Variables for motion detection
-        let stillnessCounter = 0;
-        let wuWeiActive = false;
-        
-        // Add event listeners for both click and touch
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM loaded, adding event listeners");
-            
-            // Add touch event listeners for iOS compatibility
-            document.getElementById('enable-sound-button').addEventListener('touchend', function(e) {
+            // Add click event listener to pixel
+            pixel.addEventListener('click', handlePixelTouch);
+            pixel.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                console.log("Touch end event detected on enable sound button");
-                enableSound();
+                handlePixelTouch();
             });
             
-            introNextButton.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                console.log("Touch end event detected on intro next button");
-                nextIntroPage();
-            });
+            // Admin panel access (tap 4 times in top-right corner)
+            let tapCount = 0;
+            const tapArea = document.createElement('div');
+            tapArea.style.position = 'absolute';
+            tapArea.style.top = '0';
+            tapArea.style.right = '0';
+            tapArea.style.width = '50px';
+            tapArea.style.height = '50px';
+            tapArea.style.zIndex = '99';
+            document.body.appendChild(tapArea);
             
-            tutorialNextButton.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                console.log("Touch end event detected on tutorial next button");
-                nextTutorialPage();
-            });
-            
-            skipButton.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                console.log("Touch end event detected on skip button");
-                skipTutorial();
-            });
-            
-            // Add pixel touch event
-            pixel.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                console.log("Touch end event detected on pixel");
+            const handleAdminTap = () => {
+                tapCount++;
+                console.log("Admin area tapped:", tapCount);
                 
-                // Change color temporarily
-                const originalColor = pixel.style.backgroundColor || "#ffffff";
-                pixel.style.backgroundColor = "#3498db"; // Blue
-                
-                // Trigger haptic feedback if available
-                if (navigator.vibrate) {
-                    navigator.vibrate([50, 30, 50]);
+                if (tapCount >= 4) {
+                    openAdminPanel();
+                    tapCount = 0;
                 }
                 
-                // Reset color after a delay
                 setTimeout(() => {
-                    pixel.style.backgroundColor = originalColor;
-                }, 500);
-                
-                // Speak response occasionally
-                if (Math.random() < 0.3) {
-                    const responses = [
-                        "I feel your touch.",
-                        "We are connected.",
-                        "I am here with you.",
-                        "Your presence is calming."
-                    ];
-                    speakText(responses[Math.floor(Math.random() * responses.length)]);
-                }
+                    if (tapCount > 0) {
+                        tapCount--;
+                    }
+                }, 2000);
+            };
+            
+            tapArea.addEventListener('click', handleAdminTap);
+            tapArea.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                handleAdminTap();
             });
             
             // Initialize voices for speech synthesis
             if (window.speechSynthesis) {
-                window.speechSynthesis.onvoiceschanged = function() {
-                    const voices = window.speechSynthesis.getVoices();
-                    console.log("Available voices:", voices.length);
+                window.speechSynthesis.onvoiceschanged = () => {
+                    console.log("Voices loaded:", window.speechSynthesis.getVoices().length);
                 };
+                
+                // Force voices to load
+                window.speechSynthesis.getVoices();
             }
         });
-        
-        // Log initial state
-        console.log("Script loaded, showing sound activation screen");
     </script>
 </body>
 </html>
