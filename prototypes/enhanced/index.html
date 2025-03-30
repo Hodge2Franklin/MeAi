@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MeAi Enhanced</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+    }
+    
+    #meai-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1;
+    }
+    
+    #meai-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    
+    .meai-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      max-width: 80%;
+      font-size: 1.5rem;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 2;
+    }
+    
+    .meai-choices {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 80%;
+      max-width: 300px;
+      z-index: 3;
+    }
+    
+    .meai-choice {
+      padding: 1rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .meai-choice:hover, .meai-choice:active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-ios-audio-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1rem 2rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: background-color 0.3s ease;
+    }
+    
+    .meai-ios-audio-button:hover, .meai-ios-audio-button:active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-instructions {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      width: 80%;
+      font-size: 1rem;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 2;
+    }
+    
+    .meai-admin-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      background-color: transparent;
+      border: none;
+      z-index: 5;
+      cursor: pointer;
+    }
+    
+    .meai-admin-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      border-left: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem;
+      overflow-y: auto;
+      z-index: 10;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .meai-admin-panel.visible {
+      transform: translateX(0);
+    }
+    
+    .meai-admin-panel h2 {
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+    
+    .meai-admin-panel h3 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+    
+    .meai-admin-panel button {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+    }
+    
+    .meai-admin-panel button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-admin-panel .close-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      background-color: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .meai-admin-panel .metrics {
+      margin: 1rem 0;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+    
+    .meai-admin-panel .metrics div {
+      margin-bottom: 0.3rem;
+    }
+    
+    .meai-darkened {
+      background-color: #000;
+    }
+    
+    .meai-pulse {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .meai-wave {
+      position: absolute;
+      width: 100%;
+      height: 100px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    @media (max-width: 768px) {
+      .meai-text {
+        font-size: 1.2rem;
+      }
+      
+      .meai-admin-panel {
+        width: 80%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="meai-container">
+    <canvas id="meai-canvas"></canvas>
+  </div>
+  
+  <script type="module">
+    import MeAiApp from './src/main.js';
+    
+    // Initialize MeAi application
+    const meai = new MeAiApp({
+      containerId: 'meai-container',
+      canvasId: 'meai-canvas',
+      debugMode: false
+    });
+    
+    // Initialize on page load
+    window.addEventListener('load', async () => {
+      // Initialize application
+      await meai.init();
+      
+      // Create admin panel
+      createAdminPanel(meai);
+      
+      // Start application on user interaction
+      const startHandler = async () => {
+        // Remove event listeners
+        document.removeEventListener('click', startHandler);
+        document.removeEventListener('touchstart', startHandler);
+        
+        // Start application
+        await meai.start();
+      };
+      
+      // Add event listeners for user interaction
+      document.addEventListener('click', startHandler);
+      document.addEventListener('touchstart', startHandler);
+    });
+    
+    // Create admin panel
+    function createAdminPanel(meai) {
+      // Create admin button (invisible)
+      const adminButton = document.createElement('button');
+      adminButton.className = 'meai-admin-button';
+      document.body.appendChild(adminButton);
+      
+      // Create admin panel
+      const adminPanel = document.createElement('div');
+      adminPanel.className = 'meai-admin-panel';
+      document.body.appendChild(adminPanel);
+      
+      // Create close button
+      const closeButton = document.createElement('button');
+      closeButton.className = 'close-button';
+      closeButton.textContent = '×';
+      closeButton.addEventListener('click', () => {
+        adminPanel.classList.remove('visible');
+      });
+      adminPanel.appendChild(closeButton);
+      
+      // Create panel content
+      adminPanel.innerHTML += `
+        <h2>MeAi Admin Panel</h2>
+        
+        <h3>Use Cases</h3>
+        <button data-usecase="morningConnection">Morning Connection Ritual</button>
+        <button data-usecase="emotionalResonance">Emotional Resonance Recognition</button>
+        <button data-usecase="memoryThread">Memory Thread Recognition</button>
+        <button data-usecase="silentCompanionship">Silent Companionship Mode</button>
+        <button data-usecase="insightEmergence">Insight Emergence Moment</button>
+        <button data-usecase="deviceHandover">Device Handover Recognition</button>
+        <button data-usecase="bedtimeTransition">Bedtime Transition Ritual</button>
+        
+        <h3>System</h3>
+        <button id="reset-intro">Reset Introduction</button>
+        <button id="reset-all">Reset All</button>
+        
+        <h3>iOS Compatibility</h3>
+        <button id="ios-audio-init">Initialize iOS Audio</button>
+        <button id="test-speech">Test Speech Synthesis</button>
+        
+        <h3>Performance</h3>
+        <button data-optimization="low">Low Optimization</button>
+        <button data-optimization="medium">Medium Optimization</button>
+        <button data-optimization="high">High Optimization</button>
+        
+        <h3>Metrics</h3>
+        <div class="metrics" id="metrics">
+          <div>FPS: --</div>
+          <div>Memory: --</div>
+          <div>Battery: --</div>
+          <div>Optimization: --</div>
+        </div>
+      `;
+      
+      // Add tap counter for admin panel
+      let tapCount = 0;
+      let lastTapTime = 0;
+      
+      adminButton.addEventListener('click', (event) => {
+        const now = Date.now();
+        
+        // Reset tap count if too much time has passed
+        if (now - lastTapTime > 2000) {
+          tapCount = 0;
+        }
+        
+        // Increment tap count
+        tapCount++;
+        lastTapTime = now;
+        
+        // Show admin panel after 4 taps
+        if (tapCount >= 4) {
+          adminPanel.classList.add('visible');
+          tapCount = 0;
+        }
+        
+        // Prevent event propagation
+        event.stopPropagation();
+      });
+      
+      // Add event listeners for use case buttons
+      const useCaseButtons = adminPanel.querySelectorAll('[data-usecase]');
+      useCaseButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const useCaseId = button.getAttribute('data-usecase');
+          meai.runUseCase(useCaseId);
+        });
+      });
+      
+      // Add event listener for reset introduction button
+      const resetIntroButton = document.getElementById('reset-intro');
+      resetIntroButton.addEventListener('click', () => {
+        localStorage.removeItem('meai_intro_shown');
+        alert('Introduction reset. Reload the page to see the introduction again.');
+      });
+      
+      // Add event listener for reset all button
+      const resetAllButton = document.getElementById('reset-all');
+      resetAllButton.addEventListener('click', () => {
+        meai.reset();
+        alert('All settings reset. Reload the page to restart the experience.');
+      });
+      
+      // Add event listener for iOS audio initialization button
+      const iosAudioButton = document.getElementById('ios-audio-init');
+      iosAudioButton.addEventListener('click', async () => {
+        const audioManager = meai.getComponent('audioManager');
+        if (audioManager) {
+          await audioManager.resumeAudioContext();
+          alert('iOS audio initialized.');
+        }
+      });
+      
+      // Add event listener for test speech button
+      const testSpeechButton = document.getElementById('test-speech');
+      testSpeechButton.addEventListener('click', () => {
+        const audioManager = meai.getComponent('audioManager');
+        if (audioManager) {
+          audioManager.speak('This is a test of the speech synthesis system.');
+        }
+      });
+      
+      // Add event listeners for optimization buttons
+      const optimizationButtons = adminPanel.querySelectorAll('[data-optimization]');
+      optimizationButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const level = button.getAttribute('data-optimization');
+          const performanceOptimizer = meai.getComponent('performanceOptimizer');
+          if (performanceOptimizer) {
+            performanceOptimizer.forceOptimizationLevel(level);
+            alert(`Optimization level set to: ${level}`);
+          }
+        });
+      });
+      
+      // Update metrics
+      setInterval(() => {
+        const performanceOptimizer = meai.getComponent('performanceOptimizer');
+        if (performanceOptimizer) {
+          const metrics = performanceOptimizer.getMetrics();
+          const metricsElement = document.getElementById('metrics');
+          
+          if (metricsElement) {
+            metricsElement.innerHTML = `
+              <div>FPS: ${metrics.fps || '--'}</div>
+              <div>Memory: ${metrics.memoryUsage || '--'} MB</div>
+              <div>Battery: ${metrics.batteryLevel ? Math.round(metrics.batteryLevel * 100) : '--'}%${metrics.batteryCharging ? ' (Charging)' : ''}</div>
+              <div>Optimization: ${metrics.optimizationLevel || '--'}</div>
+            `;
+          }
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

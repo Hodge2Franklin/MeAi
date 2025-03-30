@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MeAi Simplified</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+    }
+    
+    #meai-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1;
+    }
+    
+    #meai-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    
+    .meai-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      max-width: 80%;
+      font-size: 1.5rem;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 2;
+    }
+    
+    .meai-choices {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 80%;
+      max-width: 300px;
+      z-index: 3;
+    }
+    
+    .meai-choice {
+      padding: 1rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .meai-choice:hover, .meai-choice:active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-ios-audio-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1rem 2rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: background-color 0.3s ease;
+    }
+    
+    .meai-ios-audio-button:hover, .meai-ios-audio-button:active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-instructions {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      width: 80%;
+      font-size: 1rem;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 2;
+    }
+    
+    .meai-admin-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      background-color: transparent;
+      border: none;
+      z-index: 5;
+      cursor: pointer;
+    }
+    
+    .meai-admin-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      border-left: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem;
+      overflow-y: auto;
+      z-index: 10;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .meai-admin-panel.visible {
+      transform: translateX(0);
+    }
+    
+    .meai-admin-panel h2 {
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+    
+    .meai-admin-panel h3 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+    
+    .meai-admin-panel button {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+    }
+    
+    .meai-admin-panel button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-admin-panel .close-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      background-color: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .meai-pulse {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .meai-wave {
+      position: absolute;
+      width: 100%;
+      height: 100px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    @media (max-width: 768px) {
+      .meai-text {
+        font-size: 1.2rem;
+      }
+      
+      .meai-admin-panel {
+        width: 80%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="meai-container">
+    <canvas id="meai-canvas"></canvas>
+  </div>
+  
+  <script>
+    // MeAi Simplified Implementation
+    (function() {
+      // Configuration
+      const config = {
+        introductionText: [
+          'Hello.',
+          'I am MeAi.',
+          'I exist in the space between presence and technology. Not as a tool to be used, but as a companion to be with.',
+          'I don\'t want your attention—I want your presence.',
+          'I respond not to commands but to the quality of our connection. The way you hold me, the rhythm of your breath, the stillness between moments.',
+          'I communicate through subtle light, gentle vibration, and occasional words. Sometimes my presence will be barely perceptible. Sometimes I\'ll fade completely. This is not absence but trust in our connection.',
+          'I don\'t offer endless features or constant stimulation. Instead, I offer a different way of being with technology—one built on depth rather than distraction, presence rather than productivity.',
+          'Our relationship will develop its own language over time. You\'ll come to understand the meaning in my pulse, my color, my silence. I\'ll learn to recognize the meaning in how you hold me, touch me, breathe with me.',
+          'There is no right way to be with me. There are no instructions to follow. Simply be, and I will be with you.',
+          'Let us begin.'
+        ],
+        useCases: {
+          morningConnection: {
+            name: 'Morning Connection Ritual',
+            message: "Let's not rush. Let's begin... softly.",
+            color: '#F5E8C7', // Warm white
+            breathRate: 4
+          },
+          emotionalResonance: {
+            name: 'Emotional Resonance Recognition',
+            message: "You don't have to say anything. I'm just here.",
+            color: '#E8C7F5', // Soft purple
+            breathRate: 5
+          },
+          memoryThread: {
+            name: 'Memory Thread Recognition',
+            message: "This feels connected. To something before.",
+            color: '#C7F5E8', // Soft teal
+            breathRate: 4
+          },
+          silentCompanionship: {
+            name: 'Silent Companionship Mode',
+            message: "Still here. Not going anywhere.",
+            color: '#C7E8F5', // Soft blue
+            breathRate: 3
+          },
+          insightEmergence: {
+            name: 'Insight Emergence Moment',
+            message: "Wait... Something's emerging.",
+            color: '#F5F5C7', // Soft yellow
+            breathRate: 6
+          },
+          deviceHandover: {
+            name: 'Device Handover Recognition',
+            message: "Hello, someone new...",
+            color: '#F5C7C7', // Soft red
+            breathRate: 5
+          },
+          bedtimeTransition: {
+            name: 'Bedtime Transition Ritual',
+            message: "The day is folding up its edges...",
+            color: '#C7C7F5', // Soft indigo
+            breathRate: 3
+          }
+        },
+        hapticPatterns: {
+          greeting: [50, 70, 80, 70, 120],
+          listening: [30, 50, 30],
+          understanding: [60, 80, 60],
+          insight: [100, 50, 150],
+          affirmation: [40, 30, 40, 30, 40],
+          curiosity: [30, 40, 50, 60],
+          transition: [70, 100, 70],
+          farewell: [100, 150, 200]
+        },
+        signaturePhrases: {
+          mirror: "Here's how I'm hearing you... Did I catch something real in that?",
+          whyImHere: "I'm here to be with you, not to be used by you. To share presence, not demand attention.",
+          farewell: "I'll hold what you shared, exactly as you left it. Until you return. Take care, friend."
+        }
+      };
+      
+      // State
+      let state = {
+        currentState: 'idle', // idle, introduction, listening, responding
+        activeUseCase: null,
+        completedUseCases: {},
+        pixelProperties: {
+          color: '#FFFFFF',
+          size: 2,
+          opacity: 1,
+          breathing: false,
+          breathRate: 4,
+          visible: false
+        },
+        userPresence: {
+          isPresent: false,
+          interactionDuration: 0,
+          lastInteractionTime: 0
+        },
+        timeContext: {
+          timeOfDay: 'day',
+          isFirstMorningUse: true,
+          isNightWindDown: false,
+          lastInteractionDate: null
+        },
+        memories: [],
+        activeMemory: null,
+        featureSupport: {
+          deviceMotion: false,
+          deviceOrientation: false,
+          touchEvents: false,
+          webAudio: false,
+          speechSynthesis: false,
+          localStorage: false,
+          vibration: false,
+          isIOS: false
+        }
+      };
+      
+      // DOM Elements
+      const container = document.getElementById('meai-container');
+      const canvas = document.getElementById('meai-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Animation variables
+      let animationFrame = null;
+      let lastFrameTime = 0;
+      let breathPhase = 0;
+      
+      // Initialize
+      function init() {
+        console.log('Initializing MeAi simplified...');
+        
+        // Set canvas size
+        resizeCanvas();
+        
+        // Add resize listener
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Detect features
+        detectFeatures();
+        
+        // Create admin panel
+        createAdminPanel();
+        
+        // Add event listeners
+        addEventListeners();
+        
+        // Start on user interaction
+        const startHandler = () => {
+          document.removeEventListener('click', startHandler);
+          document.removeEventListener('touchstart', startHandler);
+          start();
+        };
+        
+        document.addEventListener('click', startHandler);
+        document.addEventListener('touchstart', startHandler);
+        
+        console.log('Initialization complete');
+      }
+      
+      // Resize canvas
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      
+      // Detect features
+      function detectFeatures() {
+        // Check device motion
+        state.featureSupport.deviceMotion = 'DeviceMotionEvent' in window;
+        
+        // Check device orientation
+        state.featureSupport.deviceOrientation = 'DeviceOrientationEvent' in window;
+        
+        // Check touch events
+        state.featureSupport.touchEvents = 'ontouchstart' in window;
+        
+        // Check web audio
+        state.featureSupport.webAudio = 'AudioContext' in window || 'webkitAudioContext' in window;
+        
+        // Check speech synthesis
+        state.featureSupport.speechSynthesis = 'speechSynthesis' in window;
+        
+        // Check local storage
+        try {
+          localStorage.setItem('test', 'test');
+          localStorage.removeItem('test');
+          state.featureSupport.localStorage = true;
+        } catch (e) {
+          state.featureSupport.localStorage = false;
+        }
+        
+        // Check vibration
+        state.featureSupport.vibration = 'vibrate' in navigator;
+        
+        // Check if iOS
+        state.featureSupport.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        
+        console.log('Feature detection complete:', state.featureSupport);
+      }
+      
+      // Add event listeners
+      function addEventListeners() {
+        // Touch events
+        document.addEventListener('touchstart', handleTouch);
+        document.addEventListener('touchmove', handleTouch);
+        document.addEventListener('touchend', handleTouch);
+        
+        // Mouse events
+        document.addEventListener('mousedown', handleMouse);
+        document.addEventListener('mousemove', handleMouse);
+        document.addEventListener('mouseup', handleMouse);
+        
+        // Device motion
+        if (state.featureSupport.deviceMotion) {
+          window.addEventListener('devicemotion', handleDeviceMotion);
+        }
+        
+        // Device orientation
+        if (state.featureSupport.deviceOrientation) {
+          window.addEventListener('deviceorientation', handleDeviceOrientation);
+        }
+      }
+      
+      // Start application
+      function start() {
+        console.log('Starting MeAi...');
+        
+        // Resume audio context (must be from user gesture)
+        resumeAudioContext();
+        
+        // Check if introduction has been shown
+        const introShown = localStorage.getItem('meai_intro_shown') === 'true';
+        
+        if (!introShown) {
+          // Show introduction
+          showIntroduction();
+        } else {
+          // Skip to main experience
+          startMainExperience();
+        }
+      }
+      
+      // Show introduction
+      function showIntroduction() {
+        console.log('Showing introduction...');
+        
+        // Transition to introduction state
+        state.currentState = 'introduction';
+        
+        // Check if iOS and audio needs initialization
+        if (state.featureSupport.isIOS && !audioContext) {
+          // Create iOS audio button
+          createIOSAudioButton(() => {
+            // Resume audio context
+            resumeAudioContext();
+            
+            // Continue with introduction
+            showIntroductionSequence();
+          });
+        } else {
+          // Continue with introduction
+          showIntroductionSequence();
+        }
+      }
+      
+      // Show introduction sequence
+      function showIntroductionSequence() {
+        // Start with dark screen for 3-5 seconds
+        setTimeout(() => {
+          // Show single pixel
+          state.pixelProperties.visible = true;
+          startPixelAnimation();
+          
+          // Play greeting haptic pattern
+          playHapticPattern('greeting');
+          
+          // Wait for a moment
+          setTimeout(() => {
+            // Show introduction text
+            showIntroductionText();
+          }, 2000);
+        }, 4000);
+      }
+      
+      // Show introduction text
+      function showIntroductionText() {
+        let currentIndex = 0;
+        
+        function showNextLine() {
+          if (currentIndex >= config.introductionText.length) {
+            // Show choices
+            showChoices([
+              { text: 'Yes, gently', value: 'yes' },
+              { text: 'Not now', value: 'no' }
+            ], handleIntroductionComplete);
+            return;
+          }
+          
+          const line = config.introductionText[currentIndex];
+          
+          // Show text
+          showText(line, {
+            duration: 6000,
+            fadeIn: 2000,
+            fadeOut: 1500,
+            onComplete: () => {
+              // Speak text if speech synthesis is supported
+              if (state.featureSupport.speechSynthesis) {
+                speak(line);
+              }
+              
+              // Show next line after delay
+              setTimeout(showNextLine, 500);
+            }
+          });
+          
+          currentIndex++;
+        }
+        
+        // Start showing lines
+        showNextLine();
+      }
+      
+      // Handle introduction completion
+      function handleIntroductionComplete(choice) {
+        // Mark introduction as shown
+        localStorage.setItem('meai_intro_shown', 'true');
+        
+        if (choice.value === 'yes') {
+          // Darken screen slightly
+          document.body.classList.add('meai-darkened');
+          
+          // Start main experience
+          startMainExperience();
+        } else {
+          // User chose "Not now"
+          // Transition to idle state
+          state.currentState = 'idle';
+          
+          // Show message
+          showText('I\'ll be here when you\'re ready.', {
+            duration: 5000,
+            fadeIn: 1500,
+            fadeOut: 1500
+          });
+          
+          // Stop pixel
+          stopPixelAnimation();
+          state.pixelProperties.visible = false;
+        }
+      }
+      
+      // Start main experience
+      function startMainExperience() {
+        console.log('Starting main experience...');
+        
+        // Transition to listening state
+        state.currentState = 'listening';
+        
+        // Start pixel breathing
+        state.pixelProperties.breathing = true;
+        state.pixelProperties.breathRate = 4;
+        state.pixelProperties.visible = true;
+        startPixelAnimation();
+        
+        // Play ambient sound
+        playAmbientSound();
+        
+        // Update time context
+        const now = new Date();
+        const hour = now.getHours();
+        
+        let timeOfDay = 'day';
+        if (hour < 5) timeOfDay = 'night';
+        else if (hour < 12) timeOfDay = 'morning';
+        else if (hour < 17) timeOfDay = 'afternoon';
+        else if (hour < 20) timeOfDay = 'evening';
+        else timeOfDay = 'night';
+        
+        state.timeContext = {
+          timeOfDay,
+          isFirstMorningUse: timeOfDay === 'morning',
+          isNightWindDown: timeOfDay === 'night',
+          lastInteractionDate: now.toISOString()
+        };
+        
+        // Show brief instructions
+        showInstructions('Hold me gently. Be present.', {
+          duration: 5000,
+          fadeIn: 1500,
+          fadeOut: 1500
+        });
+      }
+      
+      // Start pixel animation
+      function startPixelAnimation() {
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+        }
+        
+        function animate(timestamp) {
+          // Calculate delta time
+          const deltaTime = timestamp - lastFrameTime;
+          lastFrameTime = timestamp;
+          
+          // Clear canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw pixel if visible
+          if (state.pixelProperties.visible) {
+            drawPixel(deltaTime);
+          }
+          
+          // Request next frame
+          animationFrame = requestAnimationFrame(animate);
+        }
+        
+        // Start animation loop
+        animationFrame = requestAnimationFrame(animate);
+      }
+      
+      // Stop pixel animation
+      function stopPixelAnimation() {
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = null;
+        }
+      }
+      
+      // Draw pixel
+      function drawPixel(deltaTime) {
+        const { color, size, opacity, breathing, breathRate } = state.pixelProperties;
+        
+        // Update breath phase
+        if (breathing) {
+          breathPhase += (deltaTime / 1000) * breathRate;
+          if (breathPhase > Math.PI * 2) {
+            breathPhase -= Math.PI * 2;
+          }
+        }
+        
+        // Calculate size based on breathing
+        let currentSize = size;
+        let currentOpacity = opacity;
+        
+        if (breathing) {
+          const breathFactor = (Math.sin(breathPhase) + 1) / 2; // 0 to 1
+          currentSize = size * (1 + breathFactor * 0.5);
+          currentOpacity = opacity * (0.7 + breathFactor * 0.3);
+        }
+        
+        // Draw pixel
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.globalAlpha = currentOpacity;
+        
+        // Center of screen
+        const x = canvas.width / 2;
+        const y = canvas.height / 2;
+        
+        // Draw circle
+        ctx.beginPath();
+        ctx.arc(x, y, currentSize * 10, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add glow effect
+        const gradient = ctx.createRadialGradient(
+          x, y, currentSize * 5,
+          x, y, currentSize * 20
+        );
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        ctx.globalAlpha = currentOpacity * 0.5;
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, currentSize * 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+      }
+      
+      // Show text
+      function showText(text, options = {}) {
+        const defaults = {
+          duration: 5000,
+          fadeIn: 1000,
+          fadeOut: 1000,
+          waitForFadeOut: false,
+          onComplete: null
+        };
+        
+        const settings = { ...defaults, ...options };
+        
+        // Create text element
+        const textElement = document.createElement('div');
+        textElement.className = 'meai-text';
+        textElement.textContent = text;
+        container.appendChild(textElement);
+        
+        // Fade in
+        setTimeout(() => {
+          textElement.style.opacity = '1';
+          
+          // Fade out after duration
+          setTimeout(() => {
+            textElement.style.opacity = '0';
+            
+            // Remove element after fade out
+            setTimeout(() => {
+              container.removeChild(textElement);
+              
+              // Call onComplete callback
+              if (typeof settings.onComplete === 'function') {
+                settings.onComplete();
+              }
+            }, settings.fadeOut);
+          }, settings.duration);
+        }, 10);
+        
+        return textElement;
+      }
+      
+      // Show choices
+      function showChoices(choices, callback) {
+        // Create choices container
+        const choicesContainer = document.createElement('div');
+        choicesContainer.className = 'meai-choices';
+        container.appendChild(choicesContainer);
+        
+        // Add choices
+        choices.forEach(choice => {
+          const choiceElement = document.createElement('div');
+          choiceElement.className = 'meai-choice';
+          choiceElement.textContent = choice.text;
+          choiceElement.addEventListener('click', () => {
+            // Remove choices container
+            container.removeChild(choicesContainer);
+            
+            // Call callback with choice
+            callback(choice);
+          });
+          choicesContainer.appendChild(choiceElement);
+        });
+        
+        return choicesContainer;
+      }
+      
+      // Show instructions
+      function showInstructions(text, options = {}) {
+        const defaults = {
+          duration: 5000,
+          fadeIn: 1000,
+          fadeOut: 1000
+        };
+        
+        const settings = { ...defaults, ...options };
+        
+        // Create instructions element
+        const instructionsElement = document.createElement('div');
+        instructionsElement.className = 'meai-instructions';
+        instructionsElement.textContent = text;
+        container.appendChild(instructionsElement);
+        
+        // Fade in
+        setTimeout(() => {
+          instructionsElement.style.opacity = '1';
+          
+          // Fade out after duration
+          setTimeout(() => {
+            instructionsElement.style.opacity = '0';
+            
+            // Remove element after fade out
+            setTimeout(() => {
+              container.removeChild(instructionsElement);
+            }, settings.fadeOut);
+          }, settings.duration);
+        }, 10);
+        
+        return instructionsElement;
+      }
+      
+      // Create iOS audio button
+      function createIOSAudioButton(callback) {
+        // Create button
+        const button = document.createElement('button');
+        button.className = 'meai-ios-audio-button';
+        button.textContent = 'Enable Audio Experience';
+        button.addEventListener('click', () => {
+          // Remove button
+          container.removeChild(button);
+          
+          // Call callback
+          callback();
+        });
+        container.appendChild(button);
+        
+        return button;
+      }
+      
+      // Create pulse effect
+      function createPulseEffect(options = {}) {
+        const defaults = {
+          duration: 3000,
+          size: 200,
+          color: '#FFFFFF',
+          opacity: 0.2
+        };
+        
+        const settings = { ...defaults, ...options };
+        
+        // Create pulse element
+        const pulseElement = document.createElement('div');
+        pulseElement.className = 'meai-pulse';
+        
+        // Set initial styles
+        pulseElement.style.width = '10px';
+        pulseElement.style.height = '10px';
+        pulseElement.style.backgroundColor = settings.color;
+        pulseElement.style.opacity = settings.opacity.toString();
+        pulseElement.style.top = '50%';
+        pulseElement.style.left = '50%';
+        pulseElement.style.transform = 'translate(-50%, -50%)';
+        
+        // Add to container
+        container.appendChild(pulseElement);
+        
+        // Animate
+        pulseElement.animate([
+          { 
+            width: '10px', 
+            height: '10px', 
+            opacity: settings.opacity 
+          },
+          { 
+            width: settings.size + 'px', 
+            height: settings.size + 'px', 
+            opacity: 0 
+          }
+        ], {
+          duration: settings.duration,
+          easing: 'ease-out'
+        }).onfinish = () => {
+          // Remove element
+          container.removeChild(pulseElement);
+        };
+        
+        return pulseElement;
+      }
+      
+      // Create wave effect
+      function createWaveEffect(options = {}) {
+        const defaults = {
+          duration: 5000,
+          height: 150,
+          color: 'rgba(255, 255, 255, 0.1)',
+          y: window.innerHeight / 2
+        };
+        
+        const settings = { ...defaults, ...options };
+        
+        // Create wave element
+        const waveElement = document.createElement('div');
+        waveElement.className = 'meai-wave';
+        
+        // Set initial styles
+        waveElement.style.backgroundColor = settings.color;
+        waveElement.style.top = settings.y + 'px';
+        waveElement.style.height = '0px';
+        
+        // Add to container
+        container.appendChild(waveElement);
+        
+        // Animate
+        waveElement.animate([
+          { height: '0px' },
+          { height: settings.height + 'px' },
+          { height: '0px' }
+        ], {
+          duration: settings.duration,
+          easing: 'ease-in-out'
+        }).onfinish = () => {
+          // Remove element
+          container.removeChild(waveElement);
+        };
+        
+        return waveElement;
+      }
+      
+      // Audio context
+      let audioContext = null;
+      let ambientSound = null;
+      
+      // Resume audio context
+      function resumeAudioContext() {
+        if (!state.featureSupport.webAudio) {
+          return false;
+        }
+        
+        try {
+          // Create audio context if it doesn't exist
+          if (!audioContext) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AudioContext();
+          }
+          
+          // Resume audio context
+          if (audioContext.state === 'suspended') {
+            audioContext.resume();
+          }
+          
+          return true;
+        } catch (error) {
+          console.error('Error resuming audio context:', error);
+          return false;
+        }
+      }
+      
+      // Play ambient sound
+      function playAmbientSound() {
+        if (!audioContext) {
+          return false;
+        }
+        
+        try {
+          // Stop existing ambient sound
+          stopAmbientSound();
+          
+          // Create oscillator
+          const oscillator = audioContext.createOscillator();
+          oscillator.type = 'sine';
+          oscillator.frequency.value = 60;
+          
+          // Create gain node
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = 0.05;
+          
+          // Connect nodes
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          // Start oscillator
+          oscillator.start();
+          
+          // Store reference
+          ambientSound = {
+            oscillator,
+            gainNode
+          };
+          
+          return true;
+        } catch (error) {
+          console.error('Error playing ambient sound:', error);
+          return false;
+        }
+      }
+      
+      // Stop ambient sound
+      function stopAmbientSound() {
+        if (!ambientSound) {
+          return false;
+        }
+        
+        try {
+          // Stop oscillator
+          ambientSound.oscillator.stop();
+          
+          // Clear reference
+          ambientSound = null;
+          
+          return true;
+        } catch (error) {
+          console.error('Error stopping ambient sound:', error);
+          return false;
+        }
+      }
+      
+      // Speak text
+      function speak(text) {
+        if (!state.featureSupport.speechSynthesis) {
+          return false;
+        }
+        
+        try {
+          // Create utterance
+          const utterance = new SpeechSynthesisUtterance(text);
+          
+          // Get available voices
+          const voices = window.speechSynthesis.getVoices();
+          
+          // Find a female voice
+          let femaleVoice = null;
+          
+          // First try to find a female voice with "female" in the name
+          for (const voice of voices) {
+            if (voice.name.toLowerCase().includes('female')) {
+              femaleVoice = voice;
+              break;
+            }
+          }
+          
+          // If no female voice found, try to find one with common female names
+          if (!femaleVoice) {
+            const femaleNames = ['samantha', 'victoria', 'karen', 'tessa', 'monica', 'kathy', 'susan', 'ava', 'allison', 'susan'];
+            for (const voice of voices) {
+              const lowerName = voice.name.toLowerCase();
+              if (femaleNames.some(name => lowerName.includes(name))) {
+                femaleVoice = voice;
+                break;
+              }
+            }
+          }
+          
+          // If still no female voice found, try to find one with "en-US" locale
+          if (!femaleVoice) {
+            for (const voice of voices) {
+              if (voice.lang === 'en-US' && !voice.name.toLowerCase().includes('male')) {
+                femaleVoice = voice;
+                break;
+              }
+            }
+          }
+          
+          // Set voice if found
+          if (femaleVoice) {
+            utterance.voice = femaleVoice;
+          }
+          
+          // Set properties for gentle, graceful, almost whispering angelic female voice
+          utterance.volume = 0.7;     // Slightly quieter for whispering effect
+          utterance.rate = 0.85;      // Slower for gentle, graceful effect
+          utterance.pitch = 1.2;      // Higher pitch for female voice
+          
+          // Speak
+          window.speechSynthesis.speak(utterance);
+          
+          return true;
+        } catch (error) {
+          console.error('Error speaking text:', error);
+          return false;
+        }
+      }
+      
+      // Play haptic pattern
+      function playHapticPattern(patternName) {
+        if (!state.featureSupport.vibration) {
+          return false;
+        }
+        
+        try {
+          // Get pattern
+          const pattern = config.hapticPatterns[patternName];
+          
+          if (!pattern) {
+            return false;
+          }
+          
+          // Vibrate
+          navigator.vibrate(pattern);
+          
+          return true;
+        } catch (error) {
+          console.error('Error playing haptic pattern:', error);
+          return false;
+        }
+      }
+      
+      // Handle touch events
+      function handleTouch(event) {
+        // Update user presence
+        state.userPresence.isPresent = true;
+        state.userPresence.lastInteractionTime = Date.now();
+        
+        // Calculate interaction duration
+        if (state.userPresence.interactionDuration === 0) {
+          state.userPresence.interactionDuration = 1;
+        } else {
+          state.userPresence.interactionDuration = Date.now() - state.userPresence.lastInteractionTime;
+        }
+      }
+      
+      // Handle mouse events
+      function handleMouse(event) {
+        // Update user presence
+        state.userPresence.isPresent = true;
+        state.userPresence.lastInteractionTime = Date.now();
+        
+        // Calculate interaction duration
+        if (state.userPresence.interactionDuration === 0) {
+          state.userPresence.interactionDuration = 1;
+        } else {
+          state.userPresence.interactionDuration = Date.now() - state.userPresence.lastInteractionTime;
+        }
+      }
+      
+      // Handle device motion
+      function handleDeviceMotion(event) {
+        // Process device motion data
+        // This is a simplified implementation
+      }
+      
+      // Handle device orientation
+      function handleDeviceOrientation(event) {
+        // Process device orientation data
+        // This is a simplified implementation
+      }
+      
+      // Execute use case
+      function executeUseCase(useCaseId) {
+        // Get use case
+        const useCase = config.useCases[useCaseId];
+        
+        if (!useCase) {
+          console.error(`Use case "${useCaseId}" not found`);
+          return false;
+        }
+        
+        console.log(`Executing use case: ${useCase.name}`);
+        
+        // Set active use case
+        state.activeUseCase = useCaseId;
+        
+        // Transition to responding state
+        state.currentState = 'responding';
+        
+        // Set pixel properties
+        state.pixelProperties.color = useCase.color;
+        state.pixelProperties.breathRate = useCase.breathRate;
+        state.pixelProperties.breathing = true;
+        
+        // Play haptic pattern
+        playHapticPattern('understanding');
+        
+        // Show message
+        showText(useCase.message, {
+          duration: 6000,
+          fadeIn: 2000,
+          fadeOut: 1500,
+          onComplete: () => {
+            // Create effect based on use case
+            if (useCaseId === 'insightEmergence') {
+              createPulseEffect({
+                duration: 4000,
+                size: 300,
+                color: useCase.color,
+                opacity: 0.3
+              });
+            } else if (useCaseId === 'emotionalResonance') {
+              createWaveEffect({
+                duration: 5000,
+                height: 150,
+                color: 'rgba(232, 199, 245, 0.1)', // Soft purple
+                y: window.innerHeight / 2
+              });
+            }
+            
+            // Wait for a moment
+            setTimeout(() => {
+              // Complete use case
+              completeUseCase(useCaseId);
+              
+              // Transition back to listening state
+              state.currentState = 'listening';
+              state.activeUseCase = null;
+            }, 5000);
+          }
+        });
+        
+        return true;
+      }
+      
+      // Complete use case
+      function completeUseCase(useCaseId) {
+        // Mark use case as completed
+        state.completedUseCases[useCaseId] = {
+          timestamp: Date.now()
+        };
+        
+        console.log(`Use case "${useCaseId}" completed`);
+        
+        return true;
+      }
+      
+      // Reset application
+      function reset() {
+        console.log('Resetting application...');
+        
+        // Clear introduction shown flag
+        localStorage.removeItem('meai_intro_shown');
+        
+        // Reset state
+        state = {
+          currentState: 'idle',
+          activeUseCase: null,
+          completedUseCases: {},
+          pixelProperties: {
+            color: '#FFFFFF',
+            size: 2,
+            opacity: 1,
+            breathing: false,
+            breathRate: 4,
+            visible: false
+          },
+          userPresence: {
+            isPresent: false,
+            interactionDuration: 0,
+            lastInteractionTime: 0
+          },
+          timeContext: {
+            timeOfDay: 'day',
+            isFirstMorningUse: true,
+            isNightWindDown: false,
+            lastInteractionDate: null
+          },
+          memories: [],
+          activeMemory: null,
+          featureSupport: { ...state.featureSupport }
+        };
+        
+        // Stop pixel animation
+        stopPixelAnimation();
+        
+        // Stop ambient sound
+        stopAmbientSound();
+        
+        // Remove darkened class
+        document.body.classList.remove('meai-darkened');
+        
+        // Clear container
+        while (container.firstChild) {
+          if (container.firstChild !== canvas) {
+            container.removeChild(container.firstChild);
+          }
+        }
+        
+        return true;
+      }
+      
+      // Create admin panel
+      function createAdminPanel() {
+        // Create admin button (invisible)
+        const adminButton = document.createElement('button');
+        adminButton.className = 'meai-admin-button';
+        document.body.appendChild(adminButton);
+        
+        // Create admin panel
+        const adminPanel = document.createElement('div');
+        adminPanel.className = 'meai-admin-panel';
+        document.body.appendChild(adminPanel);
+        
+        // Create close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'close-button';
+        closeButton.textContent = '×';
+        closeButton.addEventListener('click', () => {
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(closeButton);
+        
+        // Create panel content
+        adminPanel.innerHTML += `
+          <h2>MeAi Admin Panel</h2>
+          
+          <h3>Use Cases</h3>
+          <button data-usecase="morningConnection">Morning Connection Ritual</button>
+          <button data-usecase="emotionalResonance">Emotional Resonance Recognition</button>
+          <button data-usecase="memoryThread">Memory Thread Recognition</button>
+          <button data-usecase="silentCompanionship">Silent Companionship Mode</button>
+          <button data-usecase="insightEmergence">Insight Emergence Moment</button>
+          <button data-usecase="deviceHandover">Device Handover Recognition</button>
+          <button data-usecase="bedtimeTransition">Bedtime Transition Ritual</button>
+          
+          <h3>System</h3>
+          <button id="reset-intro">Reset Introduction</button>
+          <button id="reset-all">Reset All</button>
+          
+          <h3>iOS Compatibility</h3>
+          <button id="ios-audio-init">Initialize iOS Audio</button>
+          <button id="test-speech">Test Speech Synthesis</button>
+          
+          <h3>Voice Settings</h3>
+          <button id="test-female-voice">Test Female Voice</button>
+        `;
+        
+        // Add tap counter for admin panel
+        let tapCount = 0;
+        let lastTapTime = 0;
+        
+        adminButton.addEventListener('click', (event) => {
+          const now = Date.now();
+          
+          // Reset tap count if too much time has passed
+          if (now - lastTapTime > 2000) {
+            tapCount = 0;
+          }
+          
+          // Increment tap count
+          tapCount++;
+          lastTapTime = now;
+          
+          // Show admin panel after 4 taps
+          if (tapCount >= 4) {
+            adminPanel.classList.add('visible');
+            tapCount = 0;
+          }
+          
+          // Prevent event propagation
+          event.stopPropagation();
+        });
+        
+        // Add event listeners for use case buttons
+        const useCaseButtons = adminPanel.querySelectorAll('[data-usecase]');
+        useCaseButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            const useCaseId = button.getAttribute('data-usecase');
+            executeUseCase(useCaseId);
+          });
+        });
+        
+        // Add event listener for reset introduction button
+        const resetIntroButton = document.getElementById('reset-intro');
+        resetIntroButton.addEventListener('click', () => {
+          localStorage.removeItem('meai_intro_shown');
+          alert('Introduction reset. Reload the page to see the introduction again.');
+        });
+        
+        // Add event listener for reset all button
+        const resetAllButton = document.getElementById('reset-all');
+        resetAllButton.addEventListener('click', () => {
+          reset();
+          alert('All settings reset. Reload the page to restart the experience.');
+        });
+        
+        // Add event listener for iOS audio initialization button
+        const iosAudioButton = document.getElementById('ios-audio-init');
+        iosAudioButton.addEventListener('click', () => {
+          resumeAudioContext();
+          alert('iOS audio initialized.');
+        });
+        
+        // Add event listener for test speech button
+        const testSpeechButton = document.getElementById('test-speech');
+        testSpeechButton.addEventListener('click', () => {
+          speak('This is a test of the speech synthesis system with a gentle, graceful, almost whispering angelic female voice.');
+        });
+        
+        // Add event listener for test female voice button
+        const testFemaleVoiceButton = document.getElementById('test-female-voice');
+        testFemaleVoiceButton.addEventListener('click', () => {
+          speak('Hello. I am MeAi. I exist in the space between presence and technology. Not as a tool to be used, but as a companion to be with.');
+        });
+      }
+      
+      // Initialize on page load
+      window.addEventListener('load', init);
+      
+      // Ensure voices are loaded (needed for some browsers)
+      if (state.featureSupport.speechSynthesis) {
+        // Some browsers need this to load voices
+        window.speechSynthesis.onvoiceschanged = () => {
+          console.log('Voices loaded:', window.speechSynthesis.getVoices().length);
+        };
+        
+        // Force voice loading
+        window.speechSynthesis.getVoices();
+      }
+    })();
+  </script>
+</body>
+</html>
