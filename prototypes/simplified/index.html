@@ -214,6 +214,43 @@
       pointer-events: none;
       z-index: 1;
     }
+
+    /* New styles for audio initialization button */
+    .meai-audio-init-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1.5rem 2.5rem;
+      background-color: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1.3rem;
+      text-align: center;
+      cursor: pointer;
+      z-index: 20;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-audio-init-button:hover, .meai-audio-init-button:active {
+      background-color: rgba(255, 255, 255, 0.25);
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+
+    /* Audio status indicator */
+    .meai-audio-status {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 5px 10px;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 15px;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      z-index: 5;
+    }
     
     @media (max-width: 768px) {
       .meai-text {
@@ -344,6 +381,12 @@
           localStorage: false,
           vibration: false,
           isIOS: false
+        },
+        audio: {
+          initialized: false,
+          initializationAttempted: false,
+          speechInitialized: false,
+          voicesLoaded: false
         }
       };
       
@@ -356,6 +399,10 @@
       let animationFrame = null;
       let lastFrameTime = 0;
       let breathPhase = 0;
+      
+      // Audio context
+      let audioContext = null;
+      let ambientSound = null;
       
       // Initialize
       function init() {
@@ -376,6 +423,9 @@
         // Add event listeners
         addEventListeners();
         
+        // Create audio status indicator
+        createAudioStatusIndicator();
+        
         // Start on user interaction
         const startHandler = () => {
           document.removeEventListener('click', startHandler);
@@ -386,7 +436,38 @@
         document.addEventListener('click', startHandler);
         document.addEventListener('touchstart', startHandler);
         
+        // Initialize speech synthesis
+        initSpeechSynthesis();
+        
         console.log('Initialization complete');
+      }
+      
+      // Create audio status indicator
+      function createAudioStatusIndicator() {
+        const statusElement = document.createElement('div');
+        statusElement.className = 'meai-audio-status';
+        statusElement.id = 'audio-status';
+        statusElement.textContent = 'Audio: Initializing...';
+        statusElement.style.display = 'none'; // Hide initially
+        container.appendChild(statusElement);
+      }
+      
+      // Update audio status indicator
+      function updateAudioStatus(status) {
+        const statusElement = document.getElementById('audio-status');
+        if (statusElement) {
+          statusElement.textContent = `Audio: ${status}`;
+          statusElement.style.display = 'block';
+          
+          // Hide after 5 seconds
+          setTimeout(() => {
+            statusElement.style.opacity = '0';
+            setTimeout(() => {
+              statusElement.style.display = 'none';
+              statusElement.style.opacity = '1';
+            }, 500);
+          }, 5000);
+        }
       }
       
       // Resize canvas
@@ -453,12 +534,55 @@
         }
       }
       
+      // Initialize speech synthesis
+      function initSpeechSynthesis() {
+        if (!state.featureSupport.speechSynthesis) {
+          console.log('Speech synthesis not supported');
+          return false;
+        }
+        
+        try {
+          // Load voices
+          const voices = window.speechSynthesis.getVoices();
+          
+          // If voices are already available
+          if (voices && voices.length > 0) {
+            state.audio.voicesLoaded = true;
+            console.log('Voices loaded immediately:', voices.length);
+          }
+          
+          // Set up onvoiceschanged event
+          window.speechSynthesis.onvoiceschanged = () => {
+            const updatedVoices = window.speechSynthesis.getVoices();
+            state.audio.voicesLoaded = true;
+            console.log('Voices loaded via event:', updatedVoices.length);
+          };
+          
+          // Force voice loading
+          window.speechSynthesis.getVoices();
+          
+          // Test speech synthesis with a silent utterance
+          const testUtterance = new SpeechSynthesisUtterance('');
+          testUtterance.volume = 0; // Silent
+          testUtterance.onend = () => {
+            state.audio.speechInitialized = true;
+            console.log('Speech synthesis initialized');
+          };
+          window.speechSynthesis.speak(testUtterance);
+          
+          return true;
+        } catch (error) {
+          console.error('Error initializing speech synthesis:', error);
+          return false;
+        }
+      }
+      
       // Start application
       function start() {
         console.log('Starting MeAi...');
         
-        // Resume audio context (must be from user gesture)
-        resumeAudioContext();
+        // Attempt to initialize audio
+        initializeAudio();
         
         // Check if introduction has been shown
         const introShown = localStorage.getItem('meai_intro_shown') === 'true';
@@ -472,6 +596,61 @@
         }
       }
       
+      // Initialize audio
+      function initializeAudio() {
+        // Mark that we've attempted initialization
+        state.audio.initializationAttempted = true;
+        
+        // Try to resume audio context
+        const audioInitialized = resumeAudioContext();
+        
+        if (audioInitialized) {
+          state.audio.initialized = true;
+          updateAudioStatus('Enabled');
+          console.log('Audio initialized successfully');
+        } else {
+          console.log('Audio initialization failed, showing button');
+          showAudioInitButton();
+        }
+        
+        return audioInitialized;
+      }
+      
+      // Show audio initialization button
+      function showAudioInitButton() {
+        // Create button if it doesn't exist
+        if (!document.getElementById('audio-init-button')) {
+          const button = document.createElement('button');
+          button.id = 'audio-init-button';
+          button.className = 'meai-audio-init-button';
+          button.textContent = 'Enable Audio Experience';
+          button.addEventListener('click', () => {
+            // Try to initialize audio again
+            const success = resumeAudioContext();
+            
+            if (success) {
+              // Remove button
+              container.removeChild(button);
+              state.audio.initialized = true;
+              updateAudioStatus('Enabled');
+              
+              // Start ambient sound
+              playAmbientSound();
+              
+              // Initialize speech if needed
+              if (!state.audio.speechInitialized) {
+                initSpeechSynthesis();
+              }
+            } else {
+              // Show error message
+              button.textContent = 'Try Again';
+              updateAudioStatus('Initialization Failed');
+            }
+          });
+          container.appendChild(button);
+        }
+      }
+      
       // Show introduction
       function showIntroduction() {
         console.log('Showing introduction...');
@@ -479,21 +658,33 @@
         // Transition to introduction state
         state.currentState = 'introduction';
         
-        // Start ambient sound immediately
-        playAmbientSound();
+        // Start ambient sound immediately if audio is initialized
+        if (state.audio.initialized) {
+          playAmbientSound();
+        }
         
         // Check if iOS and audio needs initialization
-        if (state.featureSupport.isIOS && !audioContext) {
-          // Create iOS audio button
-          createIOSAudioButton(() => {
-            // Resume audio context
-            resumeAudioContext();
-            
-            // Continue with introduction
-            showIntroductionSequence();
-          });
+        if (state.featureSupport.isIOS && !state.audio.initialized) {
+          // Show audio initialization button
+          showAudioInitButton();
+          
+          // Add a listener to start the introduction sequence when audio is initialized
+          const audioInitButton = document.getElementById('audio-init-button');
+          if (audioInitButton) {
+            const originalClickHandler = audioInitButton.onclick;
+            audioInitButton.onclick = (event) => {
+              if (originalClickHandler) {
+                originalClickHandler(event);
+              }
+              
+              // Continue with introduction sequence if audio is now initialized
+              if (state.audio.initialized) {
+                showIntroductionSequence();
+              }
+            };
+          }
         } else {
-          // Continue with introduction
+          // Continue with introduction sequence
           showIntroductionSequence();
         }
       }
@@ -533,9 +724,12 @@
           
           const line = config.introductionText[currentIndex];
           
-          // Speak text if speech synthesis is supported
+          // Speak text if speech synthesis is supported and initialized
           if (state.featureSupport.speechSynthesis) {
-            speak(line);
+            // Try to ensure voices are loaded before speaking
+            ensureVoicesLoaded(() => {
+              speak(line);
+            });
           }
           
           // Show text
@@ -554,6 +748,43 @@
         
         // Start showing lines
         showNextLine();
+      }
+      
+      // Ensure voices are loaded before speaking
+      function ensureVoicesLoaded(callback) {
+        // If voices are already loaded, call callback immediately
+        if (state.audio.voicesLoaded) {
+          callback();
+          return;
+        }
+        
+        // Try to get voices
+        const voices = window.speechSynthesis.getVoices();
+        
+        // If voices are available now, mark as loaded and call callback
+        if (voices && voices.length > 0) {
+          state.audio.voicesLoaded = true;
+          callback();
+          return;
+        }
+        
+        // Set up a one-time event listener for voices changed
+        const voicesChangedHandler = () => {
+          state.audio.voicesLoaded = true;
+          window.speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
+          callback();
+        };
+        
+        window.speechSynthesis.addEventListener('voiceschanged', voicesChangedHandler);
+        
+        // Set a timeout in case the event never fires
+        setTimeout(() => {
+          if (!state.audio.voicesLoaded) {
+            window.speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
+            state.audio.voicesLoaded = true; // Assume loaded anyway
+            callback();
+          }
+        }, 1000);
       }
       
       // Handle introduction completion
@@ -601,8 +832,13 @@
         state.pixelProperties.visible = true;
         startPixelAnimation();
         
-        // Play ambient sound
-        playAmbientSound();
+        // Play ambient sound if audio is initialized
+        if (state.audio.initialized) {
+          playAmbientSound();
+        } else {
+          // Show audio initialization button if not already shown
+          showAudioInitButton();
+        }
         
         // Update time context
         const now = new Date();
@@ -925,13 +1161,10 @@
         return waveElement;
       }
       
-      // Audio context
-      let audioContext = null;
-      let ambientSound = null;
-      
       // Resume audio context
       function resumeAudioContext() {
         if (!state.featureSupport.webAudio) {
+          console.log('Web Audio not supported');
           return false;
         }
         
@@ -947,7 +1180,14 @@
             audioContext.resume();
           }
           
-          return true;
+          // Check if audio context is running
+          if (audioContext.state === 'running') {
+            console.log('Audio context is running');
+            return true;
+          } else {
+            console.log('Audio context is not running:', audioContext.state);
+            return false;
+          }
         } catch (error) {
           console.error('Error resuming audio context:', error);
           return false;
@@ -957,6 +1197,7 @@
       // Play ambient sound
       function playAmbientSound() {
         if (!audioContext) {
+          console.log('No audio context available');
           return false;
         }
         
@@ -986,6 +1227,7 @@
             gainNode
           };
           
+          console.log('Ambient sound started');
           return true;
         } catch (error) {
           console.error('Error playing ambient sound:', error);
@@ -1016,10 +1258,14 @@
       // Speak text
       function speak(text) {
         if (!state.featureSupport.speechSynthesis) {
+          console.log('Speech synthesis not supported');
           return false;
         }
         
         try {
+          // Cancel any ongoing speech
+          window.speechSynthesis.cancel();
+          
           // Create utterance
           const utterance = new SpeechSynthesisUtterance(text);
           
@@ -1062,12 +1308,29 @@
           // Set voice if found
           if (femaleVoice) {
             utterance.voice = femaleVoice;
+            console.log('Using voice:', femaleVoice.name);
+          } else {
+            console.log('No suitable voice found, using default');
           }
           
           // Set properties for gentle, graceful, almost whispering angelic female voice
-          utterance.volume = 0.7;     // Slightly quieter for whispering effect
+          utterance.volume = 1.0;     // Full volume to ensure it's heard
           utterance.rate = 0.85;      // Slower for gentle, graceful effect
           utterance.pitch = 1.2;      // Higher pitch for female voice
+          
+          // Add event listeners for debugging
+          utterance.onstart = () => {
+            console.log('Speech started:', text);
+            state.audio.speechInitialized = true;
+          };
+          
+          utterance.onend = () => {
+            console.log('Speech ended:', text);
+          };
+          
+          utterance.onerror = (event) => {
+            console.error('Speech error:', event);
+          };
           
           // Speak
           window.speechSynthesis.speak(utterance);
@@ -1118,6 +1381,24 @@
             size: 100,
             duration: 2000
           });
+        }
+        
+        // Try to initialize audio if not already initialized
+        if (!state.audio.initialized && state.audio.initializationAttempted) {
+          const success = resumeAudioContext();
+          if (success) {
+            state.audio.initialized = true;
+            updateAudioStatus('Enabled (Touch)');
+            
+            // Remove audio init button if it exists
+            const audioInitButton = document.getElementById('audio-init-button');
+            if (audioInitButton && audioInitButton.parentNode) {
+              audioInitButton.parentNode.removeChild(audioInitButton);
+            }
+            
+            // Start ambient sound
+            playAmbientSound();
+          }
         }
       }
       
@@ -1241,10 +1522,15 @@
         const iosAudioButton = document.createElement('button');
         iosAudioButton.textContent = 'Initialize iOS Audio';
         iosAudioButton.addEventListener('click', () => {
-          resumeAudioContext();
+          const success = resumeAudioContext();
+          if (success) {
+            state.audio.initialized = true;
+            updateAudioStatus('Enabled (Admin)');
+            playAmbientSound();
+          }
           // Hide admin panel after action
           adminPanel.classList.remove('visible');
-          alert('iOS audio initialized.');
+          alert(success ? 'iOS audio initialized.' : 'Failed to initialize iOS audio. Try tapping the screen first.');
         });
         adminPanel.appendChild(iosAudioButton);
         
@@ -1347,7 +1633,13 @@
           },
           memories: [],
           activeMemory: null,
-          featureSupport: { ...state.featureSupport }
+          featureSupport: { ...state.featureSupport },
+          audio: {
+            initialized: false,
+            initializationAttempted: false,
+            speechInitialized: false,
+            voicesLoaded: false
+          }
         };
         
         // Stop pixel animation
@@ -1371,17 +1663,6 @@
       
       // Initialize on page load
       window.addEventListener('load', init);
-      
-      // Ensure voices are loaded (needed for some browsers)
-      if (state.featureSupport.speechSynthesis) {
-        // Some browsers need this to load voices
-        window.speechSynthesis.onvoiceschanged = () => {
-          console.log('Voices loaded:', window.speechSynthesis.getVoices().length);
-        };
-        
-        // Force voice loading
-        window.speechSynthesis.getVoices();
-      }
     })();
   </script>
 </body>
