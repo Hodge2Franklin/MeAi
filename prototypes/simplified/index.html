@@ -252,6 +252,77 @@
       z-index: 5;
     }
     
+    /* Start button for fail-safe initialization */
+    .meai-start-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1.5rem 2.5rem;
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      z-index: 30;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+    }
+    
+    .meai-start-button:hover, .meai-start-button:active {
+      background-color: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+    
+    /* Loading indicator */
+    .meai-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      z-index: 25;
+    }
+    
+    .meai-loading:after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 40px;
+      margin: 10px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      border-color: #fff transparent #fff transparent;
+      animation: meai-loading 1.2s linear infinite;
+    }
+    
+    @keyframes meai-loading {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* White circle in center */
+    .meai-circle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      background-color: #fff;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 1s ease;
+      z-index: 1;
+    }
+    
     @media (max-width: 768px) {
       .meai-text {
         font-size: 1.2rem;
@@ -266,6 +337,9 @@
 <body>
   <div id="meai-container">
     <canvas id="meai-canvas"></canvas>
+    <div class="meai-circle" id="meai-circle"></div>
+    <div class="meai-loading" id="meai-loading"></div>
+    <button class="meai-start-button" id="meai-start-button">Begin MeAi Experience</button>
   </div>
   
   <script>
@@ -387,6 +461,11 @@
           initializationAttempted: false,
           speechInitialized: false,
           voicesLoaded: false
+        },
+        failSafe: {
+          initialized: false,
+          startButtonShown: false,
+          circleVisible: false
         }
       };
       
@@ -394,6 +473,9 @@
       const container = document.getElementById('meai-container');
       const canvas = document.getElementById('meai-canvas');
       const ctx = canvas.getContext('2d');
+      const startButton = document.getElementById('meai-start-button');
+      const loadingIndicator = document.getElementById('meai-loading');
+      const whiteCircle = document.getElementById('meai-circle');
       
       // Animation variables
       let animationFrame = null;
@@ -426,20 +508,70 @@
         // Create audio status indicator
         createAudioStatusIndicator();
         
-        // Start on user interaction
-        const startHandler = () => {
-          document.removeEventListener('click', startHandler);
-          document.removeEventListener('touchstart', startHandler);
-          start();
-        };
-        
-        document.addEventListener('click', startHandler);
-        document.addEventListener('touchstart', startHandler);
-        
         // Initialize speech synthesis
         initSpeechSynthesis();
         
+        // Set up fail-safe initialization
+        setupFailSafeInitialization();
+        
         console.log('Initialization complete');
+      }
+      
+      // Set up fail-safe initialization
+      function setupFailSafeInitialization() {
+        // Hide loading indicator initially
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        
+        // Add event listener to start button
+        if (startButton) {
+          startButton.addEventListener('click', function() {
+            // Hide start button
+            startButton.style.display = 'none';
+            
+            // Show loading indicator
+            if (loadingIndicator) {
+              loadingIndicator.style.display = 'block';
+            }
+            
+            // Show white circle with animation
+            if (whiteCircle) {
+              whiteCircle.style.opacity = '1';
+              state.failSafe.circleVisible = true;
+            }
+            
+            // Mark as initialized
+            state.failSafe.initialized = true;
+            
+            // Start the experience
+            setTimeout(function() {
+              // Hide loading indicator
+              if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+              }
+              
+              // Start the application
+              start();
+            }, 1000);
+          });
+          
+          // Mark as shown
+          state.failSafe.startButtonShown = true;
+        }
+        
+        // Automatically show white circle after a timeout if no interaction
+        setTimeout(function() {
+          if (!state.failSafe.initialized) {
+            console.log('No interaction detected, showing white circle as fail-safe');
+            
+            // Show white circle
+            if (whiteCircle) {
+              whiteCircle.style.opacity = '0.7';
+              state.failSafe.circleVisible = true;
+            }
+          }
+        }, 3000);
       }
       
       // Create audio status indicator
@@ -683,10 +815,10 @@
               }
             };
           }
-        } else {
-          // Continue with introduction sequence
-          showIntroductionSequence();
         }
+        
+        // Continue with introduction sequence regardless
+        showIntroductionSequence();
       }
       
       // Show introduction sequence
@@ -982,7 +1114,9 @@
             
             // Remove element after fade out
             setTimeout(() => {
-              container.removeChild(textElement);
+              if (textElement.parentNode) {
+                container.removeChild(textElement);
+              }
               
               // Call onComplete callback
               if (typeof settings.onComplete === 'function') {
@@ -1009,7 +1143,9 @@
           choiceElement.textContent = choice.text;
           choiceElement.addEventListener('click', () => {
             // Remove choices container
-            container.removeChild(choicesContainer);
+            if (choicesContainer.parentNode) {
+              container.removeChild(choicesContainer);
+            }
             
             // Call callback with choice
             callback(choice);
@@ -1046,7 +1182,9 @@
             
             // Remove element after fade out
             setTimeout(() => {
-              container.removeChild(instructionsElement);
+              if (instructionsElement.parentNode) {
+                container.removeChild(instructionsElement);
+              }
             }, settings.fadeOut);
           }, settings.duration);
         }, 10);
@@ -1062,7 +1200,9 @@
         button.textContent = 'Enable Audio Experience';
         button.addEventListener('click', () => {
           // Remove button
-          container.removeChild(button);
+          if (button.parentNode) {
+            container.removeChild(button);
+          }
           
           // Call callback
           callback();
@@ -1100,7 +1240,7 @@
         container.appendChild(pulseElement);
         
         // Animate
-        pulseElement.animate([
+        const animation = pulseElement.animate([
           { 
             width: '10px', 
             height: '10px', 
@@ -1114,10 +1254,23 @@
         ], {
           duration: settings.duration,
           easing: 'ease-out'
-        }).onfinish = () => {
-          // Remove element
-          container.removeChild(pulseElement);
-        };
+        });
+        
+        if (animation && typeof animation.onfinish !== 'undefined') {
+          animation.onfinish = () => {
+            // Remove element
+            if (pulseElement.parentNode) {
+              container.removeChild(pulseElement);
+            }
+          };
+        } else {
+          // Fallback for browsers that don't support animation.onfinish
+          setTimeout(() => {
+            if (pulseElement.parentNode) {
+              container.removeChild(pulseElement);
+            }
+          }, settings.duration);
+        }
         
         return pulseElement;
       }
@@ -1146,17 +1299,30 @@
         container.appendChild(waveElement);
         
         // Animate
-        waveElement.animate([
+        const animation = waveElement.animate([
           { height: '0px' },
           { height: settings.height + 'px' },
           { height: '0px' }
         ], {
           duration: settings.duration,
           easing: 'ease-in-out'
-        }).onfinish = () => {
-          // Remove element
-          container.removeChild(waveElement);
-        };
+        });
+        
+        if (animation && typeof animation.onfinish !== 'undefined') {
+          animation.onfinish = () => {
+            // Remove element
+            if (waveElement.parentNode) {
+              container.removeChild(waveElement);
+            }
+          };
+        } else {
+          // Fallback for browsers that don't support animation.onfinish
+          setTimeout(() => {
+            if (waveElement.parentNode) {
+              container.removeChild(waveElement);
+            }
+          }, settings.duration);
+        }
         
         return waveElement;
       }
@@ -1400,6 +1566,11 @@
             playAmbientSound();
           }
         }
+        
+        // If not initialized through fail-safe, hide start button and start
+        if (!state.failSafe.initialized && startButton && startButton.style.display !== 'none') {
+          startButton.click();
+        }
       }
       
       // Handle mouse events
@@ -1407,6 +1578,11 @@
         // Update user presence
         state.userPresence.isPresent = true;
         state.userPresence.lastInteractionTime = Date.now();
+        
+        // If not initialized through fail-safe, hide start button and start
+        if (!state.failSafe.initialized && startButton && startButton.style.display !== 'none') {
+          startButton.click();
+        }
       }
       
       // Handle device motion
@@ -1639,6 +1815,11 @@
             initializationAttempted: false,
             speechInitialized: false,
             voicesLoaded: false
+          },
+          failSafe: {
+            initialized: false,
+            startButtonShown: false,
+            circleVisible: false
           }
         };
         
@@ -1652,10 +1833,27 @@
         document.body.classList.remove('meai-darkened');
         
         // Clear container
-        while (container.firstChild) {
-          if (container.firstChild !== canvas) {
-            container.removeChild(container.firstChild);
+        const elementsToKeep = [canvas, startButton, loadingIndicator, whiteCircle];
+        
+        Array.from(container.children).forEach(child => {
+          if (!elementsToKeep.includes(child)) {
+            container.removeChild(child);
           }
+        });
+        
+        // Show start button again
+        if (startButton) {
+          startButton.style.display = 'block';
+        }
+        
+        // Hide loading indicator
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        
+        // Hide white circle
+        if (whiteCircle) {
+          whiteCircle.style.opacity = '0';
         }
         
         return true;
