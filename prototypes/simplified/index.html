@@ -417,7 +417,25 @@
           mirror: "Here's how I'm hearing you... Did I catch something real in that?",
           whyImHere: "I'm here to be with you, not to be used by you. To share presence, not demand attention.",
           farewell: "I'll hold what you shared, exactly as you left it. Until you return. Take care, friend."
-        }
+        },
+        // Audio files for introduction
+        introductionAudio: [
+          'audio/intro_0.mp3',
+          'audio/intro_1.mp3',
+          'audio/intro_2.mp3',
+          'audio/intro_3.mp3',
+          'audio/intro_4.mp3',
+          'audio/intro_5.mp3',
+          'audio/intro_6.mp3',
+          'audio/intro_7.mp3',
+          'audio/intro_8.mp3',
+          'audio/intro_9.mp3'
+        ],
+        // Audio files for admin panel
+        adminAudio: [
+          'audio/admin_0.mp3',
+          'audio/admin_1.mp3'
+        ]
       };
       
       // State
@@ -460,7 +478,9 @@
           initialized: false,
           initializationAttempted: false,
           speechInitialized: false,
-          voicesLoaded: false
+          voicesLoaded: false,
+          preloadedAudio: {},
+          currentAudio: null
         },
         failSafe: {
           initialized: false,
@@ -508,13 +528,53 @@
         // Create audio status indicator
         createAudioStatusIndicator();
         
-        // Initialize speech synthesis
-        initSpeechSynthesis();
+        // Preload audio files
+        preloadAudioFiles();
         
         // Set up fail-safe initialization
         setupFailSafeInitialization();
         
         console.log('Initialization complete');
+      }
+      
+      // Preload audio files
+      function preloadAudioFiles() {
+        try {
+          // Preload introduction audio
+          config.introductionAudio.forEach((audioFile, index) => {
+            const audio = new Audio(audioFile);
+            audio.preload = 'auto';
+            state.audio.preloadedAudio[`intro_${index}`] = audio;
+            
+            // Add event listeners for debugging
+            audio.addEventListener('canplaythrough', () => {
+              console.log(`Audio file ${audioFile} loaded successfully`);
+            });
+            
+            audio.addEventListener('error', (e) => {
+              console.error(`Error loading audio file ${audioFile}:`, e);
+            });
+            
+            // Load the audio file
+            audio.load();
+          });
+          
+          // Preload admin audio
+          config.adminAudio.forEach((audioFile, index) => {
+            const audio = new Audio(audioFile);
+            audio.preload = 'auto';
+            state.audio.preloadedAudio[`admin_${index}`] = audio;
+            
+            // Load the audio file
+            audio.load();
+          });
+          
+          console.log('Audio files preloading started');
+          return true;
+        } catch (error) {
+          console.error('Error preloading audio files:', error);
+          return false;
+        }
       }
       
       // Set up fail-safe initialization
@@ -666,49 +726,6 @@
         }
       }
       
-      // Initialize speech synthesis
-      function initSpeechSynthesis() {
-        if (!state.featureSupport.speechSynthesis) {
-          console.log('Speech synthesis not supported');
-          return false;
-        }
-        
-        try {
-          // Load voices
-          const voices = window.speechSynthesis.getVoices();
-          
-          // If voices are already available
-          if (voices && voices.length > 0) {
-            state.audio.voicesLoaded = true;
-            console.log('Voices loaded immediately:', voices.length);
-          }
-          
-          // Set up onvoiceschanged event
-          window.speechSynthesis.onvoiceschanged = () => {
-            const updatedVoices = window.speechSynthesis.getVoices();
-            state.audio.voicesLoaded = true;
-            console.log('Voices loaded via event:', updatedVoices.length);
-          };
-          
-          // Force voice loading
-          window.speechSynthesis.getVoices();
-          
-          // Test speech synthesis with a silent utterance
-          const testUtterance = new SpeechSynthesisUtterance('');
-          testUtterance.volume = 0; // Silent
-          testUtterance.onend = () => {
-            state.audio.speechInitialized = true;
-            console.log('Speech synthesis initialized');
-          };
-          window.speechSynthesis.speak(testUtterance);
-          
-          return true;
-        } catch (error) {
-          console.error('Error initializing speech synthesis:', error);
-          return false;
-        }
-      }
-      
       // Start application
       function start() {
         console.log('Starting MeAi...');
@@ -768,11 +785,6 @@
               
               // Start ambient sound
               playAmbientSound();
-              
-              // Initialize speech if needed
-              if (!state.audio.speechInitialized) {
-                initSpeechSynthesis();
-              }
             } else {
               // Show error message
               button.textContent = 'Try Again';
@@ -856,13 +868,8 @@
           
           const line = config.introductionText[currentIndex];
           
-          // Speak text if speech synthesis is supported and initialized
-          if (state.featureSupport.speechSynthesis) {
-            // Try to ensure voices are loaded before speaking
-            ensureVoicesLoaded(() => {
-              speak(line);
-            });
-          }
+          // Play audio file for this line
+          playAudioFile(`intro_${currentIndex}`);
           
           // Show text
           showText(line, {
@@ -882,41 +889,70 @@
         showNextLine();
       }
       
-      // Ensure voices are loaded before speaking
-      function ensureVoicesLoaded(callback) {
-        // If voices are already loaded, call callback immediately
-        if (state.audio.voicesLoaded) {
-          callback();
-          return;
-        }
-        
-        // Try to get voices
-        const voices = window.speechSynthesis.getVoices();
-        
-        // If voices are available now, mark as loaded and call callback
-        if (voices && voices.length > 0) {
-          state.audio.voicesLoaded = true;
-          callback();
-          return;
-        }
-        
-        // Set up a one-time event listener for voices changed
-        const voicesChangedHandler = () => {
-          state.audio.voicesLoaded = true;
-          window.speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
-          callback();
-        };
-        
-        window.speechSynthesis.addEventListener('voiceschanged', voicesChangedHandler);
-        
-        // Set a timeout in case the event never fires
-        setTimeout(() => {
-          if (!state.audio.voicesLoaded) {
-            window.speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
-            state.audio.voicesLoaded = true; // Assume loaded anyway
-            callback();
+      // Play audio file
+      function playAudioFile(audioId) {
+        try {
+          // Stop any currently playing audio
+          stopCurrentAudio();
+          
+          // Get the audio element
+          const audio = state.audio.preloadedAudio[audioId];
+          
+          if (!audio) {
+            console.error(`Audio file ${audioId} not found`);
+            return false;
           }
-        }, 1000);
+          
+          // Set volume
+          audio.volume = 1.0;
+          
+          // Play the audio
+          const playPromise = audio.play();
+          
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log(`Playing audio ${audioId}`);
+              state.audio.currentAudio = audio;
+            }).catch(error => {
+              console.error(`Error playing audio ${audioId}:`, error);
+              
+              // Try to play on user interaction
+              const playOnInteraction = () => {
+                audio.play().then(() => {
+                  console.log(`Playing audio ${audioId} after user interaction`);
+                  state.audio.currentAudio = audio;
+                  
+                  // Remove event listeners
+                  document.removeEventListener('click', playOnInteraction);
+                  document.removeEventListener('touchstart', playOnInteraction);
+                }).catch(error => {
+                  console.error(`Still couldn't play audio ${audioId}:`, error);
+                });
+              };
+              
+              document.addEventListener('click', playOnInteraction, { once: true });
+              document.addEventListener('touchstart', playOnInteraction, { once: true });
+            });
+          }
+          
+          return true;
+        } catch (error) {
+          console.error(`Error playing audio file ${audioId}:`, error);
+          return false;
+        }
+      }
+      
+      // Stop current audio
+      function stopCurrentAudio() {
+        if (state.audio.currentAudio) {
+          try {
+            state.audio.currentAudio.pause();
+            state.audio.currentAudio.currentTime = 0;
+            state.audio.currentAudio = null;
+          } catch (error) {
+            console.error('Error stopping current audio:', error);
+          }
+        }
       }
       
       // Handle introduction completion
@@ -1421,93 +1457,6 @@
         }
       }
       
-      // Speak text
-      function speak(text) {
-        if (!state.featureSupport.speechSynthesis) {
-          console.log('Speech synthesis not supported');
-          return false;
-        }
-        
-        try {
-          // Cancel any ongoing speech
-          window.speechSynthesis.cancel();
-          
-          // Create utterance
-          const utterance = new SpeechSynthesisUtterance(text);
-          
-          // Get available voices
-          const voices = window.speechSynthesis.getVoices();
-          
-          // Find a female voice
-          let femaleVoice = null;
-          
-          // First try to find a female voice with "female" in the name
-          for (const voice of voices) {
-            if (voice.name.toLowerCase().includes('female')) {
-              femaleVoice = voice;
-              break;
-            }
-          }
-          
-          // If no female voice found, try to find one with common female names
-          if (!femaleVoice) {
-            const femaleNames = ['samantha', 'victoria', 'karen', 'tessa', 'monica', 'kathy', 'susan', 'ava', 'allison', 'susan'];
-            for (const voice of voices) {
-              const lowerName = voice.name.toLowerCase();
-              if (femaleNames.some(name => lowerName.includes(name))) {
-                femaleVoice = voice;
-                break;
-              }
-            }
-          }
-          
-          // If still no female voice found, try to find one with "en-US" locale
-          if (!femaleVoice) {
-            for (const voice of voices) {
-              if (voice.lang === 'en-US' && !voice.name.toLowerCase().includes('male')) {
-                femaleVoice = voice;
-                break;
-              }
-            }
-          }
-          
-          // Set voice if found
-          if (femaleVoice) {
-            utterance.voice = femaleVoice;
-            console.log('Using voice:', femaleVoice.name);
-          } else {
-            console.log('No suitable voice found, using default');
-          }
-          
-          // Set properties for gentle, graceful, almost whispering angelic female voice
-          utterance.volume = 1.0;     // Full volume to ensure it's heard
-          utterance.rate = 0.85;      // Slower for gentle, graceful effect
-          utterance.pitch = 1.2;      // Higher pitch for female voice
-          
-          // Add event listeners for debugging
-          utterance.onstart = () => {
-            console.log('Speech started:', text);
-            state.audio.speechInitialized = true;
-          };
-          
-          utterance.onend = () => {
-            console.log('Speech ended:', text);
-          };
-          
-          utterance.onerror = (event) => {
-            console.error('Speech error:', event);
-          };
-          
-          // Speak
-          window.speechSynthesis.speak(utterance);
-          
-          return true;
-        } catch (error) {
-          console.error('Error speaking text:', error);
-          return false;
-        }
-      }
-      
       // Play haptic pattern
       function playHapticPattern(patternName) {
         if (!state.featureSupport.vibration) {
@@ -1718,7 +1667,7 @@
         const testSpeechButton = document.createElement('button');
         testSpeechButton.textContent = 'Test Speech';
         testSpeechButton.addEventListener('click', () => {
-          speak('This is a test of the speech synthesis system with a gentle, graceful, almost whispering angelic female voice.');
+          playAudioFile('admin_0');
           // Hide admin panel after action
           adminPanel.classList.remove('visible');
         });
@@ -1727,7 +1676,7 @@
         const testFemaleVoiceButton = document.createElement('button');
         testFemaleVoiceButton.textContent = 'Test Female Voice';
         testFemaleVoiceButton.addEventListener('click', () => {
-          speak('Hello. I am MeAi. I exist in the space between presence and technology. Not as a tool to be used, but as a companion to be with.');
+          playAudioFile('admin_1');
           // Hide admin panel after action
           adminPanel.classList.remove('visible');
         });
@@ -1783,6 +1732,9 @@
         // Clear introduction shown flag
         localStorage.removeItem('meai_intro_shown');
         
+        // Stop any playing audio
+        stopCurrentAudio();
+        
         // Reset state
         state = {
           currentState: 'idle',
@@ -1814,7 +1766,9 @@
             initialized: false,
             initializationAttempted: false,
             speechInitialized: false,
-            voicesLoaded: false
+            voicesLoaded: false,
+            preloadedAudio: state.audio.preloadedAudio,
+            currentAudio: null
           },
           failSafe: {
             initialized: false,
