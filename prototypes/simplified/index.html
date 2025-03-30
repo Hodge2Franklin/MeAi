@@ -469,6 +469,9 @@
     <div class="meai-transcript" id="meai-transcript"></div>
   </div>
   
+  <!-- Include enhanced understanding module -->
+  <script src="enhanced-understanding.js"></script>
+  
   <script>
     // MeAi Simplified Implementation
     (function() {
@@ -562,40 +565,7 @@
         adminAudio: [
           'audio/admin_0.mp3',
           'audio/admin_1.mp3'
-        ],
-        // Voice recognition responses
-        voiceResponses: {
-          greeting: [
-            "Hi there! How can I help you today?",
-            "Hello! It's great to hear from you. What can I do for you?",
-            "Hey! I'm here and ready to assist. What do you need?"
-          ],
-          help: [
-            "I can help you keep track of important information, prepare for meetings, or remember details about people in your life. What would you like help with?",
-            "I'm here to make your day easier. I can remind you of important events, help you prepare for meetings, or keep track of details. What do you need today?",
-            "I'd be happy to help! I can remember important information, assist with scheduling, or keep track of details about people in your life. What can I do for you?"
-          ],
-          schedule: [
-            "I'd be happy to help with your schedule. What would you like to know about today?",
-            "Let me check your schedule for you. What specific information are you looking for?",
-            "I can help you manage your schedule. What would you like me to do?"
-          ],
-          reminder: [
-            "I can set a reminder for you. What would you like me to remind you about?",
-            "I'll make sure you don't forget. What should I remind you about and when?",
-            "I'd be happy to remind you. What's the reminder and when do you need it?"
-          ],
-          thanks: [
-            "You're welcome! I'm happy I could help.",
-            "Anytime! That's what I'm here for.",
-            "No problem at all. Is there anything else you need?"
-          ],
-          unknown: [
-            "I'm not sure I understood that. Could you rephrase?",
-            "I didn't quite catch that. Can you say it differently?",
-            "I'm still learning. Could you try asking in another way?"
-          ]
-        }
+        ]
       };
       
       // State
@@ -657,6 +627,12 @@
           lastResult: null,
           processingResponse: false,
           autoStarted: false
+        },
+        enhancedUnderstanding: {
+          initialized: false,
+          context: null,
+          nlp: null,
+          responseGenerator: null
         }
       };
       
@@ -711,7 +687,46 @@
         // Initialize voice recognition
         initializeVoiceRecognition();
         
+        // Initialize enhanced understanding
+        initializeEnhancedUnderstanding();
+        
         console.log('Initialization complete');
+      }
+      
+      // Initialize enhanced understanding
+      function initializeEnhancedUnderstanding() {
+        try {
+          // Check if enhanced-understanding.js is loaded
+          if (typeof ConversationContext === 'undefined' || 
+              typeof NLPProcessor === 'undefined' || 
+              typeof ResponseGenerator === 'undefined') {
+            console.error('Enhanced understanding module not loaded');
+            return false;
+          }
+          
+          // Create conversation context
+          const context = new ConversationContext();
+          
+          // Create NLP processor
+          const nlp = new NLPProcessor();
+          
+          // Create response generator
+          const responseGenerator = new ResponseGenerator(context, nlp);
+          
+          // Store in state
+          state.enhancedUnderstanding = {
+            initialized: true,
+            context: context,
+            nlp: nlp,
+            responseGenerator: responseGenerator
+          };
+          
+          console.log('Enhanced understanding initialized');
+          return true;
+        } catch (error) {
+          console.error('Error initializing enhanced understanding:', error);
+          return false;
+        }
       }
       
       // Initialize voice recognition
@@ -874,7 +889,7 @@
         }
       }
       
-      // Process voice input
+      // Process voice input with enhanced understanding
       function processVoiceInput(text) {
         if (state.voiceRecognition.processingResponse) {
           return false;
@@ -886,62 +901,112 @@
         // Update UI
         updateVoiceUI('processing');
         
-        // Normalize text
-        const normalizedText = text.toLowerCase().trim();
-        
-        // Determine response category
-        let responseCategory = 'unknown';
-        
-        if (normalizedText.includes('hello') || normalizedText.includes('hi') || normalizedText.includes('hey')) {
-          responseCategory = 'greeting';
-        } else if (normalizedText.includes('help') || normalizedText.includes('what can you do')) {
-          responseCategory = 'help';
-        } else if (normalizedText.includes('schedule') || normalizedText.includes('calendar') || normalizedText.includes('meeting')) {
-          responseCategory = 'schedule';
-        } else if (normalizedText.includes('remind') || normalizedText.includes('remember')) {
-          responseCategory = 'reminder';
-        } else if (normalizedText.includes('thank') || normalizedText.includes('thanks')) {
-          responseCategory = 'thanks';
-        }
-        
-        // Get random response from category
-        const responses = config.voiceResponses[responseCategory];
-        const response = responses[Math.floor(Math.random() * responses.length)];
-        
-        // Show response after a short delay
-        setTimeout(() => {
-          // Show response text
-          showText(response, {
-            duration: 5000,
-            fadeIn: 500,
-            fadeOut: 1000,
-            onComplete: () => {
-              // Reset processing flag
-              state.voiceRecognition.processingResponse = false;
-              
-              // Update UI
-              updateVoiceUI('idle');
-              
-              // Clear transcript after a delay
-              setTimeout(() => {
-                updateTranscriptUI('');
-              }, 1000);
-              
-              // Auto-restart voice recognition if we're in listening state
-              if (state.currentState === 'listening' && !state.voiceRecognition.listening) {
+        // Use enhanced understanding if available
+        if (state.enhancedUnderstanding.initialized) {
+          // Generate response using enhanced understanding
+          const result = state.enhancedUnderstanding.responseGenerator.generateResponse(text);
+          
+          // Show response after a short delay
+          setTimeout(() => {
+            // Show response text
+            showText(result.response, {
+              duration: 5000,
+              fadeIn: 500,
+              fadeOut: 1000,
+              onComplete: () => {
+                // Reset processing flag
+                state.voiceRecognition.processingResponse = false;
+                
+                // Update UI
+                updateVoiceUI('idle');
+                
+                // Clear transcript after a delay
                 setTimeout(() => {
-                  startVoiceRecognition();
-                }, 500);
+                  updateTranscriptUI('');
+                }, 1000);
+                
+                // Auto-restart voice recognition if we're in listening state
+                if (state.currentState === 'listening' && !state.voiceRecognition.listening) {
+                  setTimeout(() => {
+                    startVoiceRecognition();
+                  }, 500);
+                }
               }
+            });
+            
+            // Play haptic pattern based on intent
+            if (result.intent === 'greeting') {
+              playHapticPattern('greeting');
+            } else if (result.intent === 'thanks') {
+              playHapticPattern('affirmation');
+            } else if (result.intent === 'goodbye') {
+              playHapticPattern('farewell');
+            } else {
+              playHapticPattern('understanding');
             }
-          });
+            
+          }, 1000);
           
-          // Play haptic pattern
-          playHapticPattern('affirmation');
+          return true;
+        } else {
+          // Fall back to basic response system
+          // Normalize text
+          const normalizedText = text.toLowerCase().trim();
           
-        }, 1000);
-        
-        return true;
+          // Determine response category
+          let responseCategory = 'unknown';
+          
+          if (normalizedText.includes('hello') || normalizedText.includes('hi') || normalizedText.includes('hey')) {
+            responseCategory = 'greeting';
+          } else if (normalizedText.includes('help') || normalizedText.includes('what can you do')) {
+            responseCategory = 'help';
+          } else if (normalizedText.includes('schedule') || normalizedText.includes('calendar') || normalizedText.includes('meeting')) {
+            responseCategory = 'schedule';
+          } else if (normalizedText.includes('remind') || normalizedText.includes('remember')) {
+            responseCategory = 'reminder';
+          } else if (normalizedText.includes('thank') || normalizedText.includes('thanks')) {
+            responseCategory = 'thanks';
+          }
+          
+          // Get random response from category
+          const responses = config.voiceResponses[responseCategory];
+          const response = responses[Math.floor(Math.random() * responses.length)];
+          
+          // Show response after a short delay
+          setTimeout(() => {
+            // Show response text
+            showText(response, {
+              duration: 5000,
+              fadeIn: 500,
+              fadeOut: 1000,
+              onComplete: () => {
+                // Reset processing flag
+                state.voiceRecognition.processingResponse = false;
+                
+                // Update UI
+                updateVoiceUI('idle');
+                
+                // Clear transcript after a delay
+                setTimeout(() => {
+                  updateTranscriptUI('');
+                }, 1000);
+                
+                // Auto-restart voice recognition if we're in listening state
+                if (state.currentState === 'listening' && !state.voiceRecognition.listening) {
+                  setTimeout(() => {
+                    startVoiceRecognition();
+                  }, 500);
+                }
+              }
+            });
+            
+            // Play haptic pattern
+            playHapticPattern('affirmation');
+            
+          }, 1000);
+          
+          return true;
+        }
       }
       
       // Update voice UI
@@ -2094,6 +2159,33 @@
         });
         adminPanel.appendChild(stopVoiceButton);
         
+        // Enhanced Understanding
+        const enhancedTitle = document.createElement('h3');
+        enhancedTitle.textContent = 'Enhanced Understanding';
+        adminPanel.appendChild(enhancedTitle);
+        
+        const testEnhancedButton = document.createElement('button');
+        testEnhancedButton.textContent = 'Test Enhanced Understanding';
+        testEnhancedButton.addEventListener('click', () => {
+          if (state.enhancedUnderstanding.initialized) {
+            const result = state.enhancedUnderstanding.responseGenerator.generateResponse("Hello, how are you today?");
+            showText(`Enhanced Understanding Test: "${result.response}" (Intent: ${result.intent}, Confidence: ${result.confidence.toFixed(2)})`, {
+              duration: 5000,
+              fadeIn: 500,
+              fadeOut: 1000
+            });
+          } else {
+            showText("Enhanced Understanding not initialized", {
+              duration: 3000,
+              fadeIn: 500,
+              fadeOut: 1000
+            });
+          }
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(testEnhancedButton);
+        
         // System
         const systemTitle = document.createElement('h3');
         systemTitle.textContent = 'System';
@@ -2269,6 +2361,12 @@
             lastResult: null,
             processingResponse: false,
             autoStarted: false
+          },
+          enhancedUnderstanding: {
+            initialized: false,
+            context: null,
+            nlp: null,
+            responseGenerator: null
           }
         };
         
