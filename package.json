@@ -1,0 +1,15 @@
+{
+  "name": "single-pixel-prototype",
+  "version": "1.0.0",
+  "description": "Single Pixel + Haptic Mobile Web Prototype",
+  "main": "src/js/index.js",
+  "scripts": {
+    "start": "http-server -c-1 -p 8080",
+    "build": "mkdir -p dist && cp -r src/* dist/"
+  },
+  "author": "NfBj 2025",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

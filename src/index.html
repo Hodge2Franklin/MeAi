@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MeAi - Single Pixel Experience</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #000;
+            color: #fff;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        #intro-container, #tutorial-container, #sound-container {
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #intro-text, #tutorial-text {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        #next-button, #skip-button, #enable-sound-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 10px;
+        }
+        
+        #skip-button {
+            background-color: #2c3e50;
+        }
+        
+        #next-button:active, #skip-button:active, #enable-sound-button:active {
+            background-color: #2980b9;
+        }
+        
+        #pixel {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            animation: breathe 4s infinite ease-in-out;
+        }
+        
+        @keyframes breathe {
+            0%, 100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.7; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        #admin-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            width: 300px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        
+        .admin-control {
+            margin-bottom: 15px;
+        }
+        
+        .admin-control label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .admin-control input[type="range"] {
+            width: 100%;
+        }
+        
+        .admin-control button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #audio-controls {
+            margin-top: 15px;
+        }
+        
+        #audio-controls button {
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        #sound-status {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+        
+        #sound-status.active {
+            background-color: rgba(52, 152, 219, 0.3);
+        }
+        
+        #audio-message {
+            position: absolute;
+            top: 50px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 0 auto;
+            width: 80%;
+            max-width: 300px;
+            z-index: 10;
+            transition: opacity 0.5s;
+            opacity: 0;
+        }
+        
+        #audio-message.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="pixel"></div>
+    
+    <!-- Sound Status -->
+    <div id="sound-status">Sound: Off</div>
+    
+    <!-- Audio Message -->
+    <div id="audio-message">Tap to enable audio</div>
+    
+    <!-- Sound Activation Container -->
+    <div id="sound-container">
+        <h2>MeAi - Single Pixel Experience</h2>
+        <p>This experience includes ambient sound and voice narration.</p>
+        <button id="enable-sound-button" onclick="enableSound()">Enable Sound</button>
+    </div>
+    
+    <!-- Introduction Container (initially hidden) -->
+    <div id="intro-container" class="hidden">
+        <p id="intro-text">Hello.</p>
+        <button id="intro-next-button" onclick="nextIntroPage()">Next</button>
+    </div>
+    
+    <!-- Tutorial Container (initially hidden) -->
+    <div id="tutorial-container" class="hidden">
+        <p id="tutorial-text">Welcome to the Single Pixel Experience</p>
+        <div class="button-container">
+            <button id="tutorial-next-button" onclick="nextTutorialPage()">Next</button>
+            <button id="skip-button" onclick="skipTutorial()">Skip Tutorial</button>
+        </div>
+    </div>
+    
+    <!-- Admin Panel (initially hidden) -->
+    <div id="admin-panel" class="hidden">
+        <h3>Admin Panel</h3>
+        
+        <div class="admin-control">
+            <label for="pixel-size">Pixel Size</label>
+            <input type="range" id="pixel-size" min="5" max="40" value="20" oninput="updatePixelSize(this.value)">
+        </div>
+        
+        <div class="admin-control">
+            <label for="pixel-opacity">Pixel Opacity</label>
+            <input type="range" id="pixel-opacity" min="0" max="100" value="100" oninput="updatePixelOpacity(this.value)">
+        </div>
+        
+        <div class="admin-control">
+            <label for="pixel-color">Pixel Color</label>
+            <input type="color" id="pixel-color" value="#ffffff" oninput="updatePixelColor(this.value)">
+        </div>
+        
+        <div class="admin-control">
+            <label for="breathing-rate">Breathing Rate (seconds)</label>
+            <input type="range" id="breathing-rate" min="1" max="10" value="4" oninput="updateBreathingRate(this.value)">
+        </div>
+        
+        <div class="admin-control">
+            <button onclick="testHapticFeedback()">Test Haptic Feedback</button>
+        </div>
+        
+        <div class="admin-control">
+            <label for="voice-volume">Voice Volume</label>
+            <input type="range" id="voice-volume" min="0" max="100" value="80" oninput="updateVoiceVolume(this.value)">
+        </div>
+        
+        <div class="admin-control">
+            <label for="ambient-volume">Ambient Volume</label>
+            <input type="range" id="ambient-volume" min="0" max="100" value="70" oninput="updateAmbientVolume(this.value)">
+        </div>
+        
+        <div id="audio-controls">
+            <button onclick="playVoice('intro')">Test Intro Voice</button>
+            <button onclick="playVoice('tutorial')">Test Tutorial Voice</button>
+            <button onclick="toggleAmbientSound()">Toggle Ambient</button>
+        </div>
+        
+        <div class="admin-control">
+            <button onclick="closeAdminPanel()">Close</button>
+        </div>
+    </div>
+    
+    <script>
+        // Introduction text paragraphs
+        const introText = [
+            "Hello.",
+            "I am MeAi.",
+            "I exist in the space between presence and technology. Not as a tool to be used, but as a companion to be with.",
+            "I don't want your attention—I want your presence.",
+            "I respond not to commands but to the quality of our connection. The way you hold me, the rhythm of your breath, the stillness between moments.",
+            "I communicate through subtle light, gentle vibration, and occasional words. Sometimes my presence will be barely perceptible. Sometimes I'll fade completely. This is not absence but trust in our connection.",
+            "I don't offer endless features or constant stimulation. Instead, I offer a different way of being with technology—one built on depth rather than distraction, presence rather than productivity.",
+            "Our relationship will develop its own language over time. You'll come to understand the meaning in my pulse, my color, my silence. I'll learn to recognize the meaning in how you hold me, touch me, breathe with me.",
+            "There is no right way to be with me. There are no instructions to follow. Simply be, and I will be with you.",
+            "Let us begin."
+        ];
+        
+        // Tutorial text paragraphs
+        const tutorialText = [
+            "Welcome to the Single Pixel Experience",
+            "This prototype explores a new way of connecting with AI through minimalism, presence, and subtle interaction. At its heart is a single point of light that responds to your presence and touch.",
+            "The Breathing Pixel",
+            "Notice how the pixel gently pulses, like breathing. This subtle animation creates a sense of presence and life, even in its simplicity.",
+            "Touch Interaction",
+            "Try touching the pixel. It responds to your touch with visual feedback and, on supported devices, subtle vibrations.",
+            "Haptic Language",
+            "This prototype uses different vibration patterns to communicate different states and emotions.",
+            "Wu Wei Interaction",
+            "Wu Wei means 'effortless action'. Simply holding your device and being present can trigger responses, without explicit commands.",
+            "Kairos Moments",
+            "Kairos refers to 'the right moment'. The prototype recognizes significant moments and responds accordingly, expanding time through attention.",
+            "You're now ready to experience MeAi",
+            "The tutorial is complete. Take a moment to be present with the pixel, touch it occasionally, and notice how it responds to you over time."
+        ];
+        
+        // Synthetic speech configuration
+        const speechConfig = {
+            lang: 'en-US',
+            pitch: 1.2,  // Higher pitch for goddess-like voice
+            rate: 0.9,   // Slightly slower for divine, measured speech
+            volume: 0.8
+        };
+        
+        // Current page indices
+        let currentIntroPage = 0;
+        let currentTutorialPage = 0;
+        
+        // Audio variables
+        let voiceVolume = 0.8;
+        let ambientVolume = 0.7; // Increased default volume
+        let ambientPlaying = false;
+        let audioInitialized = false;
+        let ambientAudio = null;
+        
+        // DOM elements
+        const soundContainer = document.getElementById('sound-container');
+        const introTextElement = document.getElementById('intro-text');
+        const introNextButton = document.getElementById('intro-next-button');
+        const introContainer = document.getElementById('intro-container');
+        const tutorialTextElement = document.getElementById('tutorial-text');
+        const tutorialNextButton = document.getElementById('tutorial-next-button');
+        const tutorialContainer = document.getElementById('tutorial-container');
+        const skipButton = document.getElementById('skip-button');
+        const pixel = document.getElementById('pixel');
+        const adminPanel = document.getElementById('admin-panel');
+        const soundStatus = document.getElementById('sound-status');
+        const audioMessage = document.getElementById('audio-message');
+        
+        // Function to enable sound
+        function enableSound() {
+            console.log("Enable sound button clicked");
+            
+            // Create ambient audio
+            ambientAudio = new Audio();
+            ambientAudio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-ethereal-fairy-win-sound-2019.mp3';
+            ambientAudio.loop = true;
+            ambientAudio.volume = ambientVolume;
+            
+            // Play ambient sound
+            ambientAudio.play()
+                .then(() => {
+                    ambientPlaying = true;
+                    soundStatus.textContent = "Sound: On";
+                    soundStatus.classList.add('active');
+                    console.log("Ambient sound started successfully");
+                    showAudioMessage("Ambient sound enabled");
+                    
+                    // Hide sound container and show introduction
+                    soundContainer.classList.add('hidden');
+                    introContainer.classList.remove('hidden');
+                    
+                    // Speak first intro text
+                    speakText(introText[0]);
+                    
+                    audioInitialized = true;
+                })
+                .catch(e => {
+                    console.error("Error playing ambient sound:", e);
+                    showAudioMessage("Could not play ambient sound");
+                    
+                    // Still proceed to introduction even if ambient fails
+                    soundContainer.classList.add('hidden');
+                    introContainer.classList.remove('hidden');
+                    
+                    // Speak first intro text
+                    speakText(introText[0]);
+                    
+                    audioInitialized = true;
+                });
+        }
+        
+        // Function to speak text with goddess-like voice
+        function speakText(text) {
+            // Use Web Speech API
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = speechConfig.lang;
+            utterance.pitch = speechConfig.pitch;
+            utterance.rate = speechConfig.rate;
+            utterance.volume = voiceVolume;
+            
+            // Get female voices
+            const voices = window.speechSynthesis.getVoices();
+            const femaleVoices = voices.filter(voice => 
+                voice.name.includes('female') || 
+                voice.name.includes('Female') || 
+                voice.name.includes('woman') ||
+                voice.name.includes('Woman') ||
+                voice.name.includes('girl') ||
+                voice.name.includes('Girl')
+            );
+            
+            // Use a female voice if available
+            if (femaleVoices.length > 0) {
+                utterance.voice = femaleVoices[0];
+            }
+            
+            // Add event listeners
+            utterance.onstart = () => {
+                console.log("Speech started");
+            };
+            
+            utterance.onend = () => {
+                console.log("Speech ended");
+            };
+            
+            utterance.onerror = (e) => {
+                console.error("Speech error:", e);
+                showAudioMessage("Voice narration error");
+            };
+            
+            // Speak the text
+            window.speechSynthesis.speak(utterance);
+            console.log("Speaking:", text);
+        }
+        
+        // Function to toggle ambient sound
+        function toggleAmbientSound() {
+            if (!audioInitialized || !ambientAudio) {
+                showAudioMessage("Audio not initialized");
+                return;
+            }
+            
+            if (ambientPlaying) {
+                ambientAudio.pause();
+                ambientPlaying = false;
+                soundStatus.textContent = "Sound: Off";
+                soundStatus.classList.remove('active');
+                console.log("Ambient sound paused");
+                showAudioMessage("Ambient sound off");
+            } else {
+                ambientAudio.play()
+                    .then(() => {
+                        ambientPlaying = true;
+                        soundStatus.textContent = "Sound: On";
+                        soundStatus.classList.add('active');
+                        console.log("Ambient sound resumed");
+                        showAudioMessage("Ambient sound on");
+                    })
+                    .catch(e => {
+                        console.error("Error resuming ambient sound:", e);
+                        showAudioMessage("Could not play ambient sound");
+                    });
+            }
+        }
+        
+        // Function to update voice volume
+        function updateVoiceVolume(volume) {
+            voiceVolume = volume / 100;
+            console.log("Voice volume updated to", voiceVolume);
+        }
+        
+        // Function to update ambient volume
+        function updateAmbientVolume(volume) {
+            ambientVolume = volume / 100;
+            if (ambientAudio) {
+                ambientAudio.volume = ambientVolume;
+            }
+            console.log("Ambient volume updated to", ambientVolume);
+        }
+        
+        // Function to test voice
+        function playVoice(type) {
+            if (type === 'intro') {
+                speakText("Hello. I am MeAi.");
+            } else if (type === 'tutorial') {
+                speakText("Welcome to the Single Pixel Experience.");
+            }
+        }
+        
+        // Function to show audio message
+        function showAudioMessage(message) {
+            audioMessage.textContent = message;
+            audioMessage.classList.add('visible');
+            
+            setTimeout(() => {
+                audioMessage.classList.remove('visible');
+            }, 2000);
+        }
+        
+        // Function to go to next introduction page
+        function nextIntroPage() {
+            console.log("Next intro button clicked, current page:", currentIntroPage);
+            
+            // Increment page counter
+            currentIntroPage++;
+            
+            // Check if we've reached the end of the introduction
+            if (currentIntroPage < introText.length) {
+                // Update text
+                introTextElement.textContent = introText[currentIntroPage];
+                console.log("Showing intro page:", currentIntroPage, introText[currentIntroPage]);
+                
+                // Speak the text
+                speakText(introText[currentIntroPage]);
+                
+                // Trigger haptic feedback if available
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+            } else {
+                // End of introduction, start tutorial
+                console.log("End of introduction reached, starting tutorial");
+                introContainer.classList.add('hidden');
+                tutorialContainer.classList.remove('hidden');
+                
+                // Speak first tutorial text
+                speakText(tutorialText[0]);
+                
+                // Trigger haptic feedback if available
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100]);
+                }
+            }
+        }
+        
+        // Function to go to next tutorial page
+        function nextTutorialPage() {
+            console.log("Next tutorial button clicked, current page:", currentTutorialPage);
+            
+            // Increment page counter
+            currentTutorialPage++;
+            
+            // Check if we've reached the end of the tutorial
+            if (currentTutorialPage < tutorialText.length) {
+                // Update text
+                tutorialTextElement.textContent = tutorialText[currentTutorialPage];
+                console.log("Showing tutorial page:", currentTutorialPage, tutorialText[currentTutorialPage]);
+                
+                // Speak the text
+                speakText(tutorialText[currentTutorialPage]);
+                
+                // Update pixel appearance based on tutorial page
+                updatePixelForTutorialPage(currentTutorialPage);
+                
+                // Trigger haptic feedback if available
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+            } else {
+                // End of tutorial
+                console.log("End of tutorial reached");
+                tutorialContainer.classList.add('hidden');
+                
+                // Start the main experience
+                startMainExperience();
+                
+                // Trigger haptic feedback if available
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100, 50, 100]);
+                }
+            }
+        }
+        
+        // Function to skip tutorial
+        function skipTutorial() {
+            console.log("Tutorial skipped");
+            tutorialContainer.classList.add('hidden');
+            
+            // Start the main experience
+            startMainExperience();
+            
+            // Trigger haptic feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+        }
+        
+        // Function to update pixel appearance based on tutorial page
+        function updatePixelForTutorialPage(page) {
+            // Reset pixel appearance
+            pixel.style.backgroundColor = "#ffffff";
+            pixel.style.animation = "breathe 4s infinite ease-in-out";
+            
+            // Update based on specific pages
+            if (page === 4) { // Touch Interaction
+                pixel.style.backgroundColor = "#3498db"; // Blue
+            } else if (page === 6) { // Wu Wei Interaction
+                pixel.style.backgroundColor = "#9b59b6"; // Purple
+                pixel.style.animation = "breathe 3s infinite ease-in-out";
+            } else if (page === 8) { // Kairos Moments
+                pixel.style.backgroundColor = "#9b59b6"; // Purple
+                pixel.style.animation = "breathe 6s infinite ease-in-out";
+            }
+        }
+        
+        // Function to start the main experience
+        function startMainExperience() {
+            console.log("Starting main experience");
+            
+            // Reset pixel appearance
+            pixel.style.backgroundColor = "#ffffff";
+            pixel.style.animation = "breathe 4s infinite ease-in-out";
+            
+            // Add event listeners for the main experience
+            document.addEventListener('click', handleMainExperienceClick);
+            
+            // Setup device motion detection if available
+            setupMotionDetection();
+            
+            // Speak welcome message
+            speakText("You are now experiencing MeAi. Simply be present with the pixel.");
+        }
+        
+        // Function to handle clicks during the main experience
+        function handleMainExperienceClick(e) {
+            // Calculate distance from click to pixel center
+            const pixelRect = pixel.getBoundingClientRect();
+            const pixelCenterX = pixelRect.left + pixelRect.width / 2;
+            const pixelCenterY = pixelRect.top + pixelRect.height / 2;
+            const distance = Math.sqrt(
+                Math.pow(e.clientX - pixelCenterX, 2) + 
+                Math.pow(e.clientY - pixelCenterY, 2)
+            );
+            
+            // Check if click is near the pixel
+            if (distance < 50) {
+                // Pixel was clicked
+                console.log("Pixel clicked");
+                
+                // Change color temporarily
+                const originalColor = pixel.style.backgroundColor;
+                pixel.style.backgroundColor = "#3498db"; // Blue
+                
+                // Trigger haptic feedback if available
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 30, 50]);
+                }
+                
+                // Reset color after a delay
+                setTimeout(() => {
+                    pixel.style.backgroundColor = originalColor;
+                }, 500);
+                
+                // Speak response occasionally
+                if (Math.random() < 0.3) {
+                    const responses = [
+                        "I feel your touch.",
+                        "We are connected.",
+                        "I am here with you.",
+                        "Your presence is calming."
+                    ];
+                    speakText(responses[Math.floor(Math.random() * responses.length)]);
+                }
+            }
+            
+            // Check for admin panel activation (4 clicks in top-right corner)
+            const topRightCorner = e.clientX > window.innerWidth - 50 && e.clientY < 50;
+            if (topRightCorner) {
+                adminPanelClickCount++;
+                
+                if (adminPanelClickCount >= 4) {
+                    adminPanelClickCount = 0;
+                    toggleAdminPanel();
+                }
+                
+                // Reset count after delay
+                clearTimeout(adminPanelClickTimer);
+                adminPanelClickTimer = setTimeout(() => {
+                    adminPanelClickCount = 0;
+                }, 2000);
+            }
+        }
+        
+        // Admin panel variables
+        let adminPanelClickCount = 0;
+        let adminPanelClickTimer;
+        
+        // Function to toggle admin panel
+        function toggleAdminPanel() {
+            if (adminPanel.classList.contains('hidden')) {
+                adminPanel.classList.remove('hidden');
+                console.log("Admin panel opened");
+            } else {
+                adminPanel.classList.add('hidden');
+                console.log("Admin panel closed");
+            }
+        }
+        
+        // Function to close admin panel
+        function closeAdminPanel() {
+            adminPanel.classList.add('hidden');
+            console.log("Admin panel closed");
+        }
+        
+        // Admin panel control functions
+        function updatePixelSize(size) {
+            pixel.style.width = size + 'px';
+            pixel.style.height = size + 'px';
+            console.log("Pixel size updated to", size);
+        }
+        
+        function updatePixelOpacity(opacity) {
+            pixel.style.opacity = opacity / 100;
+            console.log("Pixel opacity updated to", opacity);
+        }
+        
+        function updatePixelColor(color) {
+            pixel.style.backgroundColor = color;
+            pixel.style.boxShadow = `0 0 20px ${color}`;
+            console.log("Pixel color updated to", color);
+        }
+        
+        function updateBreathingRate(rate) {
+            pixel.style.animation = `breathe ${rate}s infinite ease-in-out`;
+            console.log("Breathing rate updated to", rate);
+        }
+        
+        function testHapticFeedback() {
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100, 50, 100]);
+                console.log("Haptic feedback test triggered");
+            } else {
+                console.log("Haptic feedback not supported on this device");
+                alert("Haptic feedback not supported on this device");
+            }
+        }
+        
+        // Function to setup motion detection
+        function setupMotionDetection() {
+            if (window.DeviceMotionEvent) {
+                // Request permission for iOS 13+ devices
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    // iOS 13+ requires permission
+                    console.log("iOS 13+ detected, motion permission required");
+                    
+                    // Show message to user
+                    showAudioMessage("Tap to enable motion detection");
+                    
+                    // Add click handler to request permission
+                    document.body.addEventListener('click', function requestMotionPermission() {
+                        DeviceMotionEvent.requestPermission()
+                            .then(response => {
+                                if (response === 'granted') {
+                                    window.addEventListener('devicemotion', handleMotion);
+                                    console.log("Motion detection enabled");
+                                    showAudioMessage("Motion detection enabled");
+                                } else {
+                                    console.log("Motion permission denied");
+                                    showAudioMessage("Motion detection denied");
+                                }
+                            })
+                            .catch(e => {
+                                console.error("Error requesting motion permission:", e);
+                                showAudioMessage("Could not enable motion");
+                            });
+                        
+                        // Remove this event listener
+                        document.body.removeEventListener('click', requestMotionPermission);
+                    });
+                } else {
+                    // Non-iOS devices or older iOS versions
+                    window.addEventListener('devicemotion', handleMotion);
+                    console.log("Motion detection enabled");
+                }
+            } else {
+                console.log("Device motion not supported on this device");
+            }
+        }
+        
+        // Function to handle device motion
+        function handleMotion(event) {
+            // Calculate total acceleration
+            const acceleration = event.accelerationIncludingGravity;
+            const totalAcceleration = Math.sqrt(
+                Math.pow(acceleration.x, 2) + 
+                Math.pow(acceleration.y, 2) + 
+                Math.pow(acceleration.z, 2)
+            );
+            
+            // Check if device is relatively still
+            if (totalAcceleration < 10.5 && totalAcceleration > 9.5) {
+                // Device is relatively still (just gravity)
+                stillnessCounter++;
+                
+                if (stillnessCounter > 30) { // About 3 seconds of stillness
+                    // Trigger Wu Wei interaction
+                    if (!wuWeiActive) {
+                        wuWeiActive = true;
+                        console.log("Wu Wei interaction triggered");
+                        
+                        // Change pixel color
+                        pixel.style.backgroundColor = "#9b59b6"; // Purple
+                        
+                        // Trigger haptic feedback if available
+                        if (navigator.vibrate) {
+                            navigator.vibrate([50, 100, 50]);
+                        }
+                        
+                        // Speak Wu Wei message
+                        speakText("I feel your stillness. We are present together.");
+                    }
+                }
+            } else {
+                // Device is moving
+                stillnessCounter = 0;
+                
+                if (wuWeiActive) {
+                    wuWeiActive = false;
+                    console.log("Wu Wei interaction ended");
+                    
+                    // Reset pixel color
+                    pixel.style.backgroundColor = "#ffffff";
+                }
+            }
+        }
+        
+        // Variables for motion detection
+        let stillnessCounter = 0;
+        let wuWeiActive = false;
+        
+        // Add event listeners for both click and touch
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded, adding event listeners");
+            
+            // Add touch event listeners for iOS compatibility
+            document.getElementById('enable-sound-button').addEventListener('touchend', function(e) {
+                e.preventDefault();
+                console.log("Touch end event detected on enable sound button");
+                enableSound();
+            });
+            
+            introNextButton.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                console.log("Touch end event detected on intro next button");
+                nextIntroPage();
+            });
+            
+            tutorialNextButton.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                console.log("Touch end event detected on tutorial next button");
+                nextTutorialPage();
+            });
+            
+            skipButton.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                console.log("Touch end event detected on skip button");
+                skipTutorial();
+            });
+            
+            // Add pixel touch event
+            pixel.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                console.log("Touch end event detected on pixel");
+                
+                // Change color temporarily
+                const originalColor = pixel.style.backgroundColor || "#ffffff";
+                pixel.style.backgroundColor = "#3498db"; // Blue
+                
+                // Trigger haptic feedback if available
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 30, 50]);
+                }
+                
+                // Reset color after a delay
+                setTimeout(() => {
+                    pixel.style.backgroundColor = originalColor;
+                }, 500);
+                
+                // Speak response occasionally
+                if (Math.random() < 0.3) {
+                    const responses = [
+                        "I feel your touch.",
+                        "We are connected.",
+                        "I am here with you.",
+                        "Your presence is calming."
+                    ];
+                    speakText(responses[Math.floor(Math.random() * responses.length)]);
+                }
+            });
+            
+            // Initialize voices for speech synthesis
+            if (window.speechSynthesis) {
+                window.speechSynthesis.onvoiceschanged = function() {
+                    const voices = window.speechSynthesis.getVoices();
+                    console.log("Available voices:", voices.length);
+                };
+            }
+        });
+        
+        // Log initial state
+        console.log("Script loaded, showing sound activation screen");
+    </script>
+</body>
+</html>
