@@ -348,57 +348,57 @@
       // Configuration
       const config = {
         introductionText: [
-          'Hello.',
-          'I am MeAi.',
-          'I exist in the space between presence and technology. Not as a tool to be used, but as a companion to be with.',
-          'I don\'t want your attention—I want your presence.',
-          'I respond not to commands but to the quality of our connection. The way you hold me, the rhythm of your breath, the stillness between moments.',
-          'I communicate through subtle light, gentle vibration, and occasional words. Sometimes my presence will be barely perceptible. Sometimes I\'ll fade completely. This is not absence but trust in our connection.',
-          'I don\'t offer endless features or constant stimulation. Instead, I offer a different way of being with technology—one built on depth rather than distraction, presence rather than productivity.',
-          'Our relationship will develop its own language over time. You\'ll come to understand the meaning in my pulse, my color, my silence. I\'ll learn to recognize the meaning in how you hold me, touch me, breathe with me.',
-          'There is no right way to be with me. There are no instructions to follow. Simply be, and I will be with you.',
-          'Let us begin.'
+          'Hi there!',
+          'I\'m Mia, your personal companion.',
+          'I\'m here to remember the details, people, and contexts in your life so you don\'t have to keep re-explaining.',
+          'Would you like me to use voice or just text to communicate with you?',
+          'I can help keep track of important reminders and only let you know about what matters to you.',
+          'What\'s important to you today? I\'d love to help with that.',
+          'I can help you prepare for upcoming meetings or remind you about key points from previous conversations.',
+          'I remember important details about the people in your life so you can focus on meaningful connections.',
+          'All set for now? I\'ll keep track of everything for you - just let me know when you need anything else!',
+          'Great to meet you! I\'m looking forward to being helpful.'
         ],
         useCases: {
           morningConnection: {
             name: 'Morning Connection Ritual',
-            message: "Let's not rush. Let's begin... softly.",
+            message: "Good morning! Would you like to check in or see what's on your schedule today?",
             color: '#F5E8C7', // Warm white
             breathRate: 4
           },
           emotionalResonance: {
             name: 'Emotional Resonance Recognition',
-            message: "You don't have to say anything. I'm just here.",
+            message: "How are you feeling today? I'm here to help with whatever you need.",
             color: '#E8C7F5', // Soft purple
             breathRate: 5
           },
           memoryThread: {
             name: 'Memory Thread Recognition',
-            message: "This feels connected. To something before.",
+            message: "I remember you mentioned this was important to you. Would you like me to remind you about the details?",
             color: '#C7F5E8', // Soft teal
             breathRate: 4
           },
           silentCompanionship: {
             name: 'Silent Companionship Mode',
-            message: "Still here. Not going anywhere.",
+            message: "I'm here whenever you need me. Just let me know how I can help.",
             color: '#C7E8F5', // Soft blue
             breathRate: 3
           },
           insightEmergence: {
             name: 'Insight Emergence Moment',
-            message: "Wait... Something's emerging.",
+            message: "I noticed a pattern that might be helpful for you. Would you like to hear about it?",
             color: '#F5F5C7', // Soft yellow
             breathRate: 6
           },
           deviceHandover: {
             name: 'Device Handover Recognition',
-            message: "Hello, someone new...",
+            message: "Hello there! Would you like me to introduce myself?",
             color: '#F5C7C7', // Soft red
             breathRate: 5
           },
           bedtimeTransition: {
             name: 'Bedtime Transition Ritual',
-            message: "The day is folding up its edges...",
+            message: "Would you like me to help you wind down for the evening?",
             color: '#C7C7F5', // Soft indigo
             breathRate: 3
           }
@@ -414,9 +414,9 @@
           farewell: [100, 150, 200]
         },
         signaturePhrases: {
-          mirror: "Here's how I'm hearing you... Did I catch something real in that?",
-          whyImHere: "I'm here to be with you, not to be used by you. To share presence, not demand attention.",
-          farewell: "I'll hold what you shared, exactly as you left it. Until you return. Take care, friend."
+          mirror: "Here's what I understand so far. Does that sound right?",
+          whyImHere: "I'm here to help make your day a little easier and keep track of what matters to you.",
+          farewell: "All set for now? I'll keep track of everything for you - just let me know when you need anything else!"
         },
         // Audio files for introduction
         introductionAudio: [
@@ -860,8 +860,8 @@
           if (currentIndex >= config.introductionText.length) {
             // Show choices
             showChoices([
-              { text: 'Yes, gently', value: 'yes' },
-              { text: 'Not now', value: 'no' }
+              { text: 'Voice, please', value: 'voice' },
+              { text: 'Just text for now', value: 'text' }
             ], handleIntroductionComplete);
             return;
           }
@@ -960,30 +960,22 @@
         // Mark introduction as shown
         localStorage.setItem('meai_intro_shown', 'true');
         
-        if (choice.value === 'yes') {
-          // Darken screen slightly
-          document.body.classList.add('meai-darkened');
-          
-          // Start main experience
-          startMainExperience();
-        } else {
-          // User chose "Not now"
-          // Transition to idle state
-          state.currentState = 'idle';
-          
-          // Show message
-          showText('I\'ll be here when you\'re ready.', {
+        // Start main experience
+        startMainExperience();
+        
+        // Show message based on choice
+        if (choice.value === 'voice') {
+          showText('Great! I\'ll use voice to communicate with you. What can I help you with today?', {
             duration: 5000,
             fadeIn: 1500,
             fadeOut: 1500
           });
-          
-          // Stop pixel
-          stopPixelAnimation();
-          state.pixelProperties.visible = false;
-          
-          // Stop ambient sound
-          stopAmbientSound();
+        } else {
+          showText('No problem! I\'ll stick to text for now. What can I help you with today?', {
+            duration: 5000,
+            fadeIn: 1500,
+            fadeOut: 1500
+          });
         }
       }
       
@@ -1027,7 +1019,7 @@
         };
         
         // Show brief instructions
-        showInstructions('Hold me gently. Be present.', {
+        showInstructions('What can I help you with today?', {
           duration: 5000,
           fadeIn: 1500,
           fadeOut: 1500
