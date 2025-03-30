@@ -655,7 +655,8 @@
           transcript: '',
           confidence: 0,
           lastResult: null,
-          processingResponse: false
+          processingResponse: false,
+          autoStarted: false
         }
       };
       
@@ -768,12 +769,30 @@
             console.error('Voice recognition error:', event.error);
             state.voiceRecognition.listening = false;
             updateVoiceUI('idle');
+            
+            // Auto-restart if it was an error that can be recovered from
+            if (event.error === 'no-speech' || event.error === 'audio-capture' || event.error === 'network') {
+              setTimeout(() => {
+                if (state.currentState === 'listening' && !state.voiceRecognition.listening) {
+                  startVoiceRecognition();
+                }
+              }, 1000);
+            }
           };
           
           recognition.onend = function() {
             console.log('Voice recognition ended');
             state.voiceRecognition.listening = false;
             updateVoiceUI('idle');
+            
+            // Auto-restart if we're in listening state and not processing a response
+            if (state.currentState === 'listening' && !state.voiceRecognition.processingResponse) {
+              setTimeout(() => {
+                if (!state.voiceRecognition.listening) {
+                  startVoiceRecognition();
+                }
+              }, 500);
+            }
           };
           
           // Store recognition object
@@ -907,6 +926,13 @@
               setTimeout(() => {
                 updateTranscriptUI('');
               }, 1000);
+              
+              // Auto-restart voice recognition if we're in listening state
+              if (state.currentState === 'listening' && !state.voiceRecognition.listening) {
+                setTimeout(() => {
+                  startVoiceRecognition();
+                }, 500);
+              }
             }
           });
           
@@ -1455,6 +1481,14 @@
           fadeIn: 1500,
           fadeOut: 1500
         });
+        
+        // Automatically start voice recognition after a short delay
+        setTimeout(() => {
+          if (state.voiceRecognition.initialized && !state.voiceRecognition.listening && !state.voiceRecognition.autoStarted) {
+            startVoiceRecognition();
+            state.voiceRecognition.autoStarted = true;
+          }
+        }, 2000);
       }
       
       // Start pixel animation
@@ -2233,7 +2267,8 @@
             transcript: '',
             confidence: 0,
             lastResult: null,
-            processingResponse: false
+            processingResponse: false,
+            autoStarted: false
           }
         };
         
