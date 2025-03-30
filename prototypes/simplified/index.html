@@ -476,6 +476,9 @@
         // Transition to introduction state
         state.currentState = 'introduction';
         
+        // Start ambient sound immediately
+        playAmbientSound();
+        
         // Check if iOS and audio needs initialization
         if (state.featureSupport.isIOS && !audioContext) {
           // Create iOS audio button
@@ -527,17 +530,17 @@
           
           const line = config.introductionText[currentIndex];
           
+          // Speak text if speech synthesis is supported
+          if (state.featureSupport.speechSynthesis) {
+            speak(line);
+          }
+          
           // Show text
           showText(line, {
             duration: 6000,
             fadeIn: 2000,
             fadeOut: 1500,
             onComplete: () => {
-              // Speak text if speech synthesis is supported
-              if (state.featureSupport.speechSynthesis) {
-                speak(line);
-              }
-              
               // Show next line after delay
               setTimeout(showNextLine, 500);
             }
@@ -576,6 +579,9 @@
           // Stop pixel
           stopPixelAnimation();
           state.pixelProperties.visible = false;
+          
+          // Stop ambient sound
+          stopAmbientSound();
         }
       }
       
@@ -1100,11 +1106,15 @@
         state.userPresence.isPresent = true;
         state.userPresence.lastInteractionTime = Date.now();
         
-        // Calculate interaction duration
-        if (state.userPresence.interactionDuration === 0) {
-          state.userPresence.interactionDuration = 1;
-        } else {
-          state.userPresence.interactionDuration = Date.now() - state.userPresence.lastInteractionTime;
+        // Handle based on state
+        if (state.currentState === 'listening') {
+          // Create pulse effect
+          createPulseEffect({
+            color: '#FFFFFF',
+            opacity: 0.1,
+            size: 100,
+            duration: 2000
+          });
         }
       }
       
@@ -1113,106 +1123,172 @@
         // Update user presence
         state.userPresence.isPresent = true;
         state.userPresence.lastInteractionTime = Date.now();
-        
-        // Calculate interaction duration
-        if (state.userPresence.interactionDuration === 0) {
-          state.userPresence.interactionDuration = 1;
-        } else {
-          state.userPresence.interactionDuration = Date.now() - state.userPresence.lastInteractionTime;
-        }
       }
       
       // Handle device motion
       function handleDeviceMotion(event) {
-        // Process device motion data
-        // This is a simplified implementation
+        // Get acceleration
+        const acceleration = event.acceleration;
+        
+        // Calculate magnitude
+        const magnitude = Math.sqrt(
+          acceleration.x * acceleration.x +
+          acceleration.y * acceleration.y +
+          acceleration.z * acceleration.z
+        );
+        
+        // Handle based on magnitude
+        if (magnitude > 5) {
+          // Strong movement
+          console.log('Strong movement detected:', magnitude);
+        }
       }
       
       // Handle device orientation
       function handleDeviceOrientation(event) {
-        // Process device orientation data
-        // This is a simplified implementation
+        // Get orientation
+        const alpha = event.alpha; // Z-axis rotation
+        const beta = event.beta;   // X-axis rotation
+        const gamma = event.gamma; // Y-axis rotation
+        
+        // Handle based on orientation
+        if (beta > 80) {
+          // Device is facing up
+          console.log('Device is facing up');
+        } else if (beta < -80) {
+          // Device is facing down
+          console.log('Device is facing down');
+        }
       }
       
-      // Execute use case
-      function executeUseCase(useCaseId) {
-        // Get use case
-        const useCase = config.useCases[useCaseId];
+      // Create admin panel
+      function createAdminPanel() {
+        // Create admin button
+        const adminButton = document.createElement('button');
+        adminButton.className = 'meai-admin-button';
+        adminButton.innerHTML = '⚙️';
+        container.appendChild(adminButton);
+        
+        // Create admin panel
+        const adminPanel = document.createElement('div');
+        adminPanel.className = 'meai-admin-panel';
+        container.appendChild(adminPanel);
+        
+        // Create close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'close-button';
+        closeButton.innerHTML = '×';
+        adminPanel.appendChild(closeButton);
+        
+        // Create title
+        const title = document.createElement('h2');
+        title.textContent = 'MeAi Admin Panel';
+        adminPanel.appendChild(title);
+        
+        // Create sections
+        
+        // Use Cases
+        const useCasesTitle = document.createElement('h3');
+        useCasesTitle.textContent = 'Use Cases';
+        adminPanel.appendChild(useCasesTitle);
+        
+        Object.keys(config.useCases).forEach(useCaseKey => {
+          const useCase = config.useCases[useCaseKey];
+          const button = document.createElement('button');
+          button.textContent = useCase.name;
+          button.addEventListener('click', () => {
+            // Activate use case
+            activateUseCase(useCaseKey);
+          });
+          adminPanel.appendChild(button);
+        });
+        
+        // System
+        const systemTitle = document.createElement('h3');
+        systemTitle.textContent = 'System';
+        adminPanel.appendChild(systemTitle);
+        
+        const resetButton = document.createElement('button');
+        resetButton.textContent = 'Reset All';
+        resetButton.id = 'reset-all';
+        adminPanel.appendChild(resetButton);
+        
+        const resetIntroButton = document.createElement('button');
+        resetIntroButton.textContent = 'Reset Introduction';
+        resetIntroButton.id = 'reset-intro';
+        adminPanel.appendChild(resetIntroButton);
+        
+        // iOS Compatibility
+        const iosTitle = document.createElement('h3');
+        iosTitle.textContent = 'iOS Compatibility';
+        adminPanel.appendChild(iosTitle);
+        
+        const iosAudioButton = document.createElement('button');
+        iosAudioButton.textContent = 'Initialize iOS Audio';
+        iosAudioButton.id = 'ios-audio-init';
+        adminPanel.appendChild(iosAudioButton);
+        
+        // Voice Settings
+        const voiceTitle = document.createElement('h3');
+        voiceTitle.textContent = 'Voice Settings';
+        adminPanel.appendChild(voiceTitle);
+        
+        const testSpeechButton = document.createElement('button');
+        testSpeechButton.textContent = 'Test Speech';
+        testSpeechButton.id = 'test-speech';
+        adminPanel.appendChild(testSpeechButton);
+        
+        const testFemaleVoiceButton = document.createElement('button');
+        testFemaleVoiceButton.textContent = 'Test Female Voice';
+        testFemaleVoiceButton.id = 'test-female-voice';
+        adminPanel.appendChild(testFemaleVoiceButton);
+        
+        // Add event listeners
+        adminButton.addEventListener('click', () => {
+          adminPanel.classList.toggle('visible');
+        });
+        
+        closeButton.addEventListener('click', () => {
+          adminPanel.classList.remove('visible');
+        });
+      }
+      
+      // Activate use case
+      function activateUseCase(useCaseKey) {
+        const useCase = config.useCases[useCaseKey];
         
         if (!useCase) {
-          console.error(`Use case "${useCaseId}" not found`);
           return false;
         }
         
-        console.log(`Executing use case: ${useCase.name}`);
+        console.log('Activating use case:', useCaseKey);
         
         // Set active use case
-        state.activeUseCase = useCaseId;
+        state.activeUseCase = useCaseKey;
         
-        // Transition to responding state
-        state.currentState = 'responding';
-        
-        // Set pixel properties
+        // Update pixel properties
         state.pixelProperties.color = useCase.color;
         state.pixelProperties.breathRate = useCase.breathRate;
-        state.pixelProperties.breathing = true;
-        
-        // Play haptic pattern
-        playHapticPattern('understanding');
         
         // Show message
         showText(useCase.message, {
-          duration: 6000,
-          fadeIn: 2000,
-          fadeOut: 1500,
-          onComplete: () => {
-            // Create effect based on use case
-            if (useCaseId === 'insightEmergence') {
-              createPulseEffect({
-                duration: 4000,
-                size: 300,
-                color: useCase.color,
-                opacity: 0.3
-              });
-            } else if (useCaseId === 'emotionalResonance') {
-              createWaveEffect({
-                duration: 5000,
-                height: 150,
-                color: 'rgba(232, 199, 245, 0.1)', // Soft purple
-                y: window.innerHeight / 2
-              });
-            }
-            
-            // Wait for a moment
-            setTimeout(() => {
-              // Complete use case
-              completeUseCase(useCaseId);
-              
-              // Transition back to listening state
-              state.currentState = 'listening';
-              state.activeUseCase = null;
-            }, 5000);
-          }
+          duration: 5000,
+          fadeIn: 1500,
+          fadeOut: 1500
         });
         
-        return true;
-      }
-      
-      // Complete use case
-      function completeUseCase(useCaseId) {
-        // Mark use case as completed
-        state.completedUseCases[useCaseId] = {
-          timestamp: Date.now()
-        };
+        // Play haptic pattern
+        playHapticPattern('transition');
         
-        console.log(`Use case "${useCaseId}" completed`);
+        // Mark as completed
+        state.completedUseCases[useCaseKey] = true;
         
         return true;
       }
       
-      // Reset application
+      // Reset
       function reset() {
-        console.log('Resetting application...');
+        console.log('Resetting MeAi...');
         
         // Clear introduction shown flag
         localStorage.removeItem('meai_intro_shown');
@@ -1265,87 +1341,8 @@
         return true;
       }
       
-      // Create admin panel
-      function createAdminPanel() {
-        // Create admin button (invisible)
-        const adminButton = document.createElement('button');
-        adminButton.className = 'meai-admin-button';
-        document.body.appendChild(adminButton);
-        
-        // Create admin panel
-        const adminPanel = document.createElement('div');
-        adminPanel.className = 'meai-admin-panel';
-        document.body.appendChild(adminPanel);
-        
-        // Create close button
-        const closeButton = document.createElement('button');
-        closeButton.className = 'close-button';
-        closeButton.textContent = '×';
-        closeButton.addEventListener('click', () => {
-          adminPanel.classList.remove('visible');
-        });
-        adminPanel.appendChild(closeButton);
-        
-        // Create panel content
-        adminPanel.innerHTML += `
-          <h2>MeAi Admin Panel</h2>
-          
-          <h3>Use Cases</h3>
-          <button data-usecase="morningConnection">Morning Connection Ritual</button>
-          <button data-usecase="emotionalResonance">Emotional Resonance Recognition</button>
-          <button data-usecase="memoryThread">Memory Thread Recognition</button>
-          <button data-usecase="silentCompanionship">Silent Companionship Mode</button>
-          <button data-usecase="insightEmergence">Insight Emergence Moment</button>
-          <button data-usecase="deviceHandover">Device Handover Recognition</button>
-          <button data-usecase="bedtimeTransition">Bedtime Transition Ritual</button>
-          
-          <h3>System</h3>
-          <button id="reset-intro">Reset Introduction</button>
-          <button id="reset-all">Reset All</button>
-          
-          <h3>iOS Compatibility</h3>
-          <button id="ios-audio-init">Initialize iOS Audio</button>
-          <button id="test-speech">Test Speech Synthesis</button>
-          
-          <h3>Voice Settings</h3>
-          <button id="test-female-voice">Test Female Voice</button>
-        `;
-        
-        // Add tap counter for admin panel
-        let tapCount = 0;
-        let lastTapTime = 0;
-        
-        adminButton.addEventListener('click', (event) => {
-          const now = Date.now();
-          
-          // Reset tap count if too much time has passed
-          if (now - lastTapTime > 2000) {
-            tapCount = 0;
-          }
-          
-          // Increment tap count
-          tapCount++;
-          lastTapTime = now;
-          
-          // Show admin panel after 4 taps
-          if (tapCount >= 4) {
-            adminPanel.classList.add('visible');
-            tapCount = 0;
-          }
-          
-          // Prevent event propagation
-          event.stopPropagation();
-        });
-        
-        // Add event listeners for use case buttons
-        const useCaseButtons = adminPanel.querySelectorAll('[data-usecase]');
-        useCaseButtons.forEach(button => {
-          button.addEventListener('click', () => {
-            const useCaseId = button.getAttribute('data-usecase');
-            executeUseCase(useCaseId);
-          });
-        });
-        
+      // Add admin panel event listeners
+      function addAdminPanelEventListeners() {
         // Add event listener for reset introduction button
         const resetIntroButton = document.getElementById('reset-intro');
         resetIntroButton.addEventListener('click', () => {
