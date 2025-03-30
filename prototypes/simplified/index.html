@@ -323,6 +323,115 @@
       z-index: 1;
     }
     
+    /* Voice recognition button and indicator */
+    .meai-voice-button {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 60px;
+      background-color: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+    
+    .meai-voice-button:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+    
+    .meai-voice-button.listening {
+      background-color: rgba(255, 100, 100, 0.3);
+      animation: pulse 1.5s infinite;
+    }
+    
+    .meai-voice-button.processing {
+      background-color: rgba(100, 100, 255, 0.3);
+    }
+    
+    .meai-voice-icon {
+      width: 24px;
+      height: 24px;
+      fill: #fff;
+    }
+    
+    .meai-voice-waves {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 5;
+    }
+    
+    .meai-voice-waves.visible {
+      opacity: 1;
+    }
+    
+    .meai-voice-wave {
+      width: 4px;
+      height: 20px;
+      margin: 0 2px;
+      background-color: rgba(255, 255, 255, 0.7);
+      border-radius: 2px;
+    }
+    
+    .meai-voice-waves.listening .meai-voice-wave {
+      animation: wave 1s infinite;
+      animation-timing-function: ease-in-out;
+    }
+    
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(1) { animation-delay: 0.0s; }
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(2) { animation-delay: 0.1s; }
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(3) { animation-delay: 0.2s; }
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(4) { animation-delay: 0.3s; }
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(5) { animation-delay: 0.4s; }
+    
+    @keyframes wave {
+      0%, 100% { height: 10px; }
+      50% { height: 30px; }
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 100, 100, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(255, 100, 100, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 100, 100, 0); }
+    }
+    
+    /* Voice recognition transcript */
+    .meai-transcript {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 400px;
+      padding: 10px 15px;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 10px;
+      font-size: 1rem;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 5;
+    }
+    
+    .meai-transcript.visible {
+      opacity: 1;
+    }
+    
     @media (max-width: 768px) {
       .meai-text {
         font-size: 1.2rem;
@@ -340,6 +449,24 @@
     <div class="meai-circle" id="meai-circle"></div>
     <div class="meai-loading" id="meai-loading"></div>
     <button class="meai-start-button" id="meai-start-button">Begin MeAi Experience</button>
+    
+    <!-- Voice recognition elements -->
+    <button class="meai-voice-button" id="meai-voice-button">
+      <svg class="meai-voice-icon" viewBox="0 0 24 24">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </button>
+    
+    <div class="meai-voice-waves" id="meai-voice-waves">
+      <div class="meai-voice-wave"></div>
+      <div class="meai-voice-wave"></div>
+      <div class="meai-voice-wave"></div>
+      <div class="meai-voice-wave"></div>
+      <div class="meai-voice-wave"></div>
+    </div>
+    
+    <div class="meai-transcript" id="meai-transcript"></div>
   </div>
   
   <script>
@@ -435,7 +562,40 @@
         adminAudio: [
           'audio/admin_0.mp3',
           'audio/admin_1.mp3'
-        ]
+        ],
+        // Voice recognition responses
+        voiceResponses: {
+          greeting: [
+            "Hi there! How can I help you today?",
+            "Hello! It's great to hear from you. What can I do for you?",
+            "Hey! I'm here and ready to assist. What do you need?"
+          ],
+          help: [
+            "I can help you keep track of important information, prepare for meetings, or remember details about people in your life. What would you like help with?",
+            "I'm here to make your day easier. I can remind you of important events, help you prepare for meetings, or keep track of details. What do you need today?",
+            "I'd be happy to help! I can remember important information, assist with scheduling, or keep track of details about people in your life. What can I do for you?"
+          ],
+          schedule: [
+            "I'd be happy to help with your schedule. What would you like to know about today?",
+            "Let me check your schedule for you. What specific information are you looking for?",
+            "I can help you manage your schedule. What would you like me to do?"
+          ],
+          reminder: [
+            "I can set a reminder for you. What would you like me to remind you about?",
+            "I'll make sure you don't forget. What should I remind you about and when?",
+            "I'd be happy to remind you. What's the reminder and when do you need it?"
+          ],
+          thanks: [
+            "You're welcome! I'm happy I could help.",
+            "Anytime! That's what I'm here for.",
+            "No problem at all. Is there anything else you need?"
+          ],
+          unknown: [
+            "I'm not sure I understood that. Could you rephrase?",
+            "I didn't quite catch that. Can you say it differently?",
+            "I'm still learning. Could you try asking in another way?"
+          ]
+        }
       };
       
       // State
@@ -470,6 +630,7 @@
           touchEvents: false,
           webAudio: false,
           speechSynthesis: false,
+          speechRecognition: false,
           localStorage: false,
           vibration: false,
           isIOS: false
@@ -486,6 +647,15 @@
           initialized: false,
           startButtonShown: false,
           circleVisible: false
+        },
+        voiceRecognition: {
+          initialized: false,
+          listening: false,
+          recognition: null,
+          transcript: '',
+          confidence: 0,
+          lastResult: null,
+          processingResponse: false
         }
       };
       
@@ -496,6 +666,9 @@
       const startButton = document.getElementById('meai-start-button');
       const loadingIndicator = document.getElementById('meai-loading');
       const whiteCircle = document.getElementById('meai-circle');
+      const voiceButton = document.getElementById('meai-voice-button');
+      const voiceWaves = document.getElementById('meai-voice-waves');
+      const transcript = document.getElementById('meai-transcript');
       
       // Animation variables
       let animationFrame = null;
@@ -534,7 +707,257 @@
         // Set up fail-safe initialization
         setupFailSafeInitialization();
         
+        // Initialize voice recognition
+        initializeVoiceRecognition();
+        
         console.log('Initialization complete');
+      }
+      
+      // Initialize voice recognition
+      function initializeVoiceRecognition() {
+        // Check if speech recognition is supported
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          console.log('Speech recognition not supported');
+          state.featureSupport.speechRecognition = false;
+          return false;
+        }
+        
+        try {
+          // Create speech recognition object
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          const recognition = new SpeechRecognition();
+          
+          // Configure recognition
+          recognition.continuous = false;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
+          
+          // Set up event handlers
+          recognition.onstart = function() {
+            console.log('Voice recognition started');
+            state.voiceRecognition.listening = true;
+            updateVoiceUI('listening');
+          };
+          
+          recognition.onresult = function(event) {
+            const result = event.results[0];
+            const transcript = result[0].transcript;
+            const confidence = result[0].confidence;
+            
+            console.log('Voice recognition result:', transcript, confidence);
+            
+            state.voiceRecognition.transcript = transcript;
+            state.voiceRecognition.confidence = confidence;
+            
+            // Update transcript UI
+            updateTranscriptUI(transcript);
+            
+            // Process final result
+            if (result.isFinal) {
+              state.voiceRecognition.lastResult = {
+                transcript: transcript,
+                confidence: confidence
+              };
+              
+              // Process the voice input
+              processVoiceInput(transcript);
+            }
+          };
+          
+          recognition.onerror = function(event) {
+            console.error('Voice recognition error:', event.error);
+            state.voiceRecognition.listening = false;
+            updateVoiceUI('idle');
+          };
+          
+          recognition.onend = function() {
+            console.log('Voice recognition ended');
+            state.voiceRecognition.listening = false;
+            updateVoiceUI('idle');
+          };
+          
+          // Store recognition object
+          state.voiceRecognition.recognition = recognition;
+          state.voiceRecognition.initialized = true;
+          state.featureSupport.speechRecognition = true;
+          
+          // Set up voice button
+          if (voiceButton) {
+            voiceButton.addEventListener('click', toggleVoiceRecognition);
+            voiceButton.style.display = 'none'; // Hide initially, show after introduction
+          }
+          
+          console.log('Voice recognition initialized');
+          return true;
+        } catch (error) {
+          console.error('Error initializing voice recognition:', error);
+          state.featureSupport.speechRecognition = false;
+          return false;
+        }
+      }
+      
+      // Toggle voice recognition
+      function toggleVoiceRecognition() {
+        if (!state.voiceRecognition.initialized) {
+          console.log('Voice recognition not initialized');
+          return false;
+        }
+        
+        if (state.voiceRecognition.listening) {
+          // Stop listening
+          stopVoiceRecognition();
+        } else {
+          // Start listening
+          startVoiceRecognition();
+        }
+        
+        return true;
+      }
+      
+      // Start voice recognition
+      function startVoiceRecognition() {
+        if (!state.voiceRecognition.initialized || state.voiceRecognition.listening) {
+          return false;
+        }
+        
+        try {
+          // Clear previous transcript
+          state.voiceRecognition.transcript = '';
+          updateTranscriptUI('');
+          
+          // Start recognition
+          state.voiceRecognition.recognition.start();
+          
+          // Play haptic pattern
+          playHapticPattern('listening');
+          
+          return true;
+        } catch (error) {
+          console.error('Error starting voice recognition:', error);
+          return false;
+        }
+      }
+      
+      // Stop voice recognition
+      function stopVoiceRecognition() {
+        if (!state.voiceRecognition.initialized || !state.voiceRecognition.listening) {
+          return false;
+        }
+        
+        try {
+          // Stop recognition
+          state.voiceRecognition.recognition.stop();
+          
+          return true;
+        } catch (error) {
+          console.error('Error stopping voice recognition:', error);
+          return false;
+        }
+      }
+      
+      // Process voice input
+      function processVoiceInput(text) {
+        if (state.voiceRecognition.processingResponse) {
+          return false;
+        }
+        
+        // Set processing flag
+        state.voiceRecognition.processingResponse = true;
+        
+        // Update UI
+        updateVoiceUI('processing');
+        
+        // Normalize text
+        const normalizedText = text.toLowerCase().trim();
+        
+        // Determine response category
+        let responseCategory = 'unknown';
+        
+        if (normalizedText.includes('hello') || normalizedText.includes('hi') || normalizedText.includes('hey')) {
+          responseCategory = 'greeting';
+        } else if (normalizedText.includes('help') || normalizedText.includes('what can you do')) {
+          responseCategory = 'help';
+        } else if (normalizedText.includes('schedule') || normalizedText.includes('calendar') || normalizedText.includes('meeting')) {
+          responseCategory = 'schedule';
+        } else if (normalizedText.includes('remind') || normalizedText.includes('remember')) {
+          responseCategory = 'reminder';
+        } else if (normalizedText.includes('thank') || normalizedText.includes('thanks')) {
+          responseCategory = 'thanks';
+        }
+        
+        // Get random response from category
+        const responses = config.voiceResponses[responseCategory];
+        const response = responses[Math.floor(Math.random() * responses.length)];
+        
+        // Show response after a short delay
+        setTimeout(() => {
+          // Show response text
+          showText(response, {
+            duration: 5000,
+            fadeIn: 500,
+            fadeOut: 1000,
+            onComplete: () => {
+              // Reset processing flag
+              state.voiceRecognition.processingResponse = false;
+              
+              // Update UI
+              updateVoiceUI('idle');
+              
+              // Clear transcript after a delay
+              setTimeout(() => {
+                updateTranscriptUI('');
+              }, 1000);
+            }
+          });
+          
+          // Play haptic pattern
+          playHapticPattern('affirmation');
+          
+        }, 1000);
+        
+        return true;
+      }
+      
+      // Update voice UI
+      function updateVoiceUI(status) {
+        if (!voiceButton || !voiceWaves) {
+          return false;
+        }
+        
+        // Update button
+        voiceButton.classList.remove('listening', 'processing');
+        
+        if (status === 'listening') {
+          voiceButton.classList.add('listening');
+          voiceWaves.classList.add('visible', 'listening');
+        } else if (status === 'processing') {
+          voiceButton.classList.add('processing');
+          voiceWaves.classList.add('visible');
+          voiceWaves.classList.remove('listening');
+        } else {
+          voiceWaves.classList.remove('visible', 'listening');
+        }
+        
+        return true;
+      }
+      
+      // Update transcript UI
+      function updateTranscriptUI(text) {
+        if (!transcript) {
+          return false;
+        }
+        
+        if (text) {
+          transcript.textContent = text;
+          transcript.classList.add('visible');
+        } else {
+          transcript.classList.remove('visible');
+          setTimeout(() => {
+            transcript.textContent = '';
+          }, 300);
+        }
+        
+        return true;
       }
       
       // Preload audio files
@@ -684,6 +1107,9 @@
         
         // Check speech synthesis
         state.featureSupport.speechSynthesis = 'speechSynthesis' in window;
+        
+        // Check speech recognition
+        state.featureSupport.speechRecognition = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
         
         // Check local storage
         try {
@@ -1000,6 +1426,11 @@
           showAudioInitButton();
         }
         
+        // Show voice button if voice recognition is initialized
+        if (state.voiceRecognition.initialized && voiceButton) {
+          voiceButton.style.display = 'flex';
+        }
+        
         // Update time context
         const now = new Date();
         const hour = now.getHours();
@@ -1019,7 +1450,7 @@
         };
         
         // Show brief instructions
-        showInstructions('What can I help you with today?', {
+        showInstructions('Tap the microphone to talk to me', {
           duration: 5000,
           fadeIn: 1500,
           fadeOut: 1500
@@ -1606,6 +2037,29 @@
           adminPanel.appendChild(button);
         });
         
+        // Voice Recognition
+        const voiceTitle = document.createElement('h3');
+        voiceTitle.textContent = 'Voice Recognition';
+        adminPanel.appendChild(voiceTitle);
+        
+        const startVoiceButton = document.createElement('button');
+        startVoiceButton.textContent = 'Start Voice Recognition';
+        startVoiceButton.addEventListener('click', () => {
+          startVoiceRecognition();
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(startVoiceButton);
+        
+        const stopVoiceButton = document.createElement('button');
+        stopVoiceButton.textContent = 'Stop Voice Recognition';
+        stopVoiceButton.addEventListener('click', () => {
+          stopVoiceRecognition();
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(stopVoiceButton);
+        
         // System
         const systemTitle = document.createElement('h3');
         systemTitle.textContent = 'System';
@@ -1652,9 +2106,9 @@
         adminPanel.appendChild(iosAudioButton);
         
         // Voice Settings
-        const voiceTitle = document.createElement('h3');
-        voiceTitle.textContent = 'Voice Settings';
-        adminPanel.appendChild(voiceTitle);
+        const voiceSettingsTitle = document.createElement('h3');
+        voiceSettingsTitle.textContent = 'Voice Settings';
+        adminPanel.appendChild(voiceSettingsTitle);
         
         const testSpeechButton = document.createElement('button');
         testSpeechButton.textContent = 'Test Speech';
@@ -1727,6 +2181,11 @@
         // Stop any playing audio
         stopCurrentAudio();
         
+        // Stop voice recognition
+        if (state.voiceRecognition.listening) {
+          stopVoiceRecognition();
+        }
+        
         // Reset state
         state = {
           currentState: 'idle',
@@ -1766,6 +2225,15 @@
             initialized: false,
             startButtonShown: false,
             circleVisible: false
+          },
+          voiceRecognition: {
+            initialized: state.voiceRecognition.initialized,
+            listening: false,
+            recognition: state.voiceRecognition.recognition,
+            transcript: '',
+            confidence: 0,
+            lastResult: null,
+            processingResponse: false
           }
         };
         
@@ -1779,7 +2247,7 @@
         document.body.classList.remove('meai-darkened');
         
         // Clear container
-        const elementsToKeep = [canvas, startButton, loadingIndicator, whiteCircle];
+        const elementsToKeep = [canvas, startButton, loadingIndicator, whiteCircle, voiceButton, voiceWaves, transcript];
         
         Array.from(container.children).forEach(child => {
           if (!elementsToKeep.includes(child)) {
@@ -1800,6 +2268,22 @@
         // Hide white circle
         if (whiteCircle) {
           whiteCircle.style.opacity = '0';
+        }
+        
+        // Hide voice button
+        if (voiceButton) {
+          voiceButton.style.display = 'none';
+        }
+        
+        // Hide voice waves
+        if (voiceWaves) {
+          voiceWaves.classList.remove('visible', 'listening');
+        }
+        
+        // Hide transcript
+        if (transcript) {
+          transcript.classList.remove('visible');
+          transcript.textContent = '';
         }
         
         return true;
