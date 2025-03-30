@@ -47,7 +47,7 @@
     
     .meai-text {
       position: absolute;
-      top: 50%;
+      top: 70%; /* Moved down from 50% to 70% to avoid overlapping with the circle */
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
@@ -57,6 +57,9 @@
       opacity: 0;
       transition: opacity 0.5s ease;
       z-index: 2;
+      background-color: rgba(0, 0, 0, 0.6); /* Added semi-transparent background */
+      padding: 15px; /* Added padding for better readability */
+      border-radius: 10px; /* Rounded corners for the background */
     }
     
     .meai-choices {
@@ -497,7 +500,7 @@
       
       // Show introduction sequence
       function showIntroductionSequence() {
-        // Start with dark screen for 3-5 seconds
+        // Reduced delay - Start with dark screen for just 1 second instead of 4
         setTimeout(() => {
           // Show single pixel
           state.pixelProperties.visible = true;
@@ -506,12 +509,12 @@
           // Play greeting haptic pattern
           playHapticPattern('greeting');
           
-          // Wait for a moment
+          // Reduced delay - Wait for just 0.5 seconds instead of 2
           setTimeout(() => {
             // Show introduction text
             showIntroductionText();
-          }, 2000);
-        }, 4000);
+          }, 500);
+        }, 1000);
       }
       
       // Show introduction text
@@ -1199,6 +1202,8 @@
           button.addEventListener('click', () => {
             // Activate use case
             activateUseCase(useCaseKey);
+            // Hide admin panel after action
+            adminPanel.classList.remove('visible');
           });
           adminPanel.appendChild(button);
         });
@@ -1210,12 +1215,22 @@
         
         const resetButton = document.createElement('button');
         resetButton.textContent = 'Reset All';
-        resetButton.id = 'reset-all';
+        resetButton.addEventListener('click', () => {
+          reset();
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+          alert('All settings reset. Reload the page to restart the experience.');
+        });
         adminPanel.appendChild(resetButton);
         
         const resetIntroButton = document.createElement('button');
         resetIntroButton.textContent = 'Reset Introduction';
-        resetIntroButton.id = 'reset-intro';
+        resetIntroButton.addEventListener('click', () => {
+          localStorage.removeItem('meai_intro_shown');
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+          alert('Introduction reset. Reload the page to see the introduction again.');
+        });
         adminPanel.appendChild(resetIntroButton);
         
         // iOS Compatibility
@@ -1225,7 +1240,12 @@
         
         const iosAudioButton = document.createElement('button');
         iosAudioButton.textContent = 'Initialize iOS Audio';
-        iosAudioButton.id = 'ios-audio-init';
+        iosAudioButton.addEventListener('click', () => {
+          resumeAudioContext();
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+          alert('iOS audio initialized.');
+        });
         adminPanel.appendChild(iosAudioButton);
         
         // Voice Settings
@@ -1235,12 +1255,20 @@
         
         const testSpeechButton = document.createElement('button');
         testSpeechButton.textContent = 'Test Speech';
-        testSpeechButton.id = 'test-speech';
+        testSpeechButton.addEventListener('click', () => {
+          speak('This is a test of the speech synthesis system with a gentle, graceful, almost whispering angelic female voice.');
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
         adminPanel.appendChild(testSpeechButton);
         
         const testFemaleVoiceButton = document.createElement('button');
         testFemaleVoiceButton.textContent = 'Test Female Voice';
-        testFemaleVoiceButton.id = 'test-female-voice';
+        testFemaleVoiceButton.addEventListener('click', () => {
+          speak('Hello. I am MeAi. I exist in the space between presence and technology. Not as a tool to be used, but as a companion to be with.');
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
         adminPanel.appendChild(testFemaleVoiceButton);
         
         // Add event listeners
@@ -1339,42 +1367,6 @@
         }
         
         return true;
-      }
-      
-      // Add admin panel event listeners
-      function addAdminPanelEventListeners() {
-        // Add event listener for reset introduction button
-        const resetIntroButton = document.getElementById('reset-intro');
-        resetIntroButton.addEventListener('click', () => {
-          localStorage.removeItem('meai_intro_shown');
-          alert('Introduction reset. Reload the page to see the introduction again.');
-        });
-        
-        // Add event listener for reset all button
-        const resetAllButton = document.getElementById('reset-all');
-        resetAllButton.addEventListener('click', () => {
-          reset();
-          alert('All settings reset. Reload the page to restart the experience.');
-        });
-        
-        // Add event listener for iOS audio initialization button
-        const iosAudioButton = document.getElementById('ios-audio-init');
-        iosAudioButton.addEventListener('click', () => {
-          resumeAudioContext();
-          alert('iOS audio initialized.');
-        });
-        
-        // Add event listener for test speech button
-        const testSpeechButton = document.getElementById('test-speech');
-        testSpeechButton.addEventListener('click', () => {
-          speak('This is a test of the speech synthesis system with a gentle, graceful, almost whispering angelic female voice.');
-        });
-        
-        // Add event listener for test female voice button
-        const testFemaleVoiceButton = document.getElementById('test-female-voice');
-        testFemaleVoiceButton.addEventListener('click', () => {
-          speak('Hello. I am MeAi. I exist in the space between presence and technology. Not as a tool to be used, but as a companion to be with.');
-        });
       }
       
       // Initialize on page load
