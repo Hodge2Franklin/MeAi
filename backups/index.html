@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeAI Enhanced Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional styles for deployment version */
+        .page-transition-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 9999;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background-color: #333;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification-info {
+            background-color: #2196F3;
+        }
+        
+        .notification-success {
+            background-color: #4CAF50;
+        }
+        
+        .notification-error {
+            background-color: #F44336;
+        }
+        
+        .ripple {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+        
+        @keyframes ripple {
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+        
+        .mic-ripple {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            transform: translate(-50%, -50%) scale(1);
+            border-radius: 50%;
+            border: 2px solid #ff5722;
+            opacity: 1;
+            animation: mic-pulse 1.5s infinite;
+        }
+        
+        @keyframes mic-pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 0;
+            }
+        }
+        
+        .mic-active {
+            background-color: #ff5722 !important;
+            color: white !important;
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #f1f1f1;
+            border-radius: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .typing-indicator .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #888;
+            margin-right: 4px;
+            animation: typing-dot 1.4s infinite;
+        }
+        
+        @keyframes typing-dot {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        body.animations-disabled * {
+            transition: none !important;
+            animation: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="background-container"></div>
+    
+    <div class="container">
+        <header>
+            <h1>MeAI</h1>
+            <div class="controls">
+                <div class="control-group">
+                    <button id="ambient-toggle" class="control-button">Toggle Ambient Sound</button>
+                    <div class="slider-container">
+                        <label for="ambient-volume">Volume</label>
+                        <input type="range" id="ambient-volume" min="0" max="1" step="0.1" value="0.3">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <button id="voice-test" class="control-button">Test Voice</button>
+                    <div class="slider-container">
+                        <label for="voice-volume">Volume</label>
+                        <input type="range" id="voice-volume" min="0" max="1" step="0.1" value="0.7">
+                    </div>
+                </div>
+                <button id="help-button" class="control-button">Help</button>
+            </div>
+        </header>
+        
+        <main>
+            <div class="pixel-container">
+                <div id="pixel"></div>
+            </div>
+            
+            <div class="conversation-container">
+                <div id="conversation-history"></div>
+                <div class="input-container">
+                    <input type="text" id="message-input" placeholder="Type your message...">
+                    <button id="send-button">Send</button>
+                    <button id="mic-button"><span class="mic-icon">🎤</span></button>
+                </div>
+            </div>
+        </main>
+        
+        <div id="status-display">
+            <div id="ambient-status">Ambient Sound: <span>Off</span></div>
+            <div id="soundscape-display">Current Soundscape: <span>Cosmic</span></div>
+            <div id="voice-status">Voice: <span>Ready</span></div>
+        </div>
+    </div>
+    
+    <div id="onboarding-overlay" class="hidden">
+        <div id="onboarding-content">
+            <h2>Welcome to MeAI</h2>
+            <div id="onboarding-step-content"></div>
+            <div class="onboarding-controls">
+                <button id="onboarding-prev">Previous</button>
+                <div id="onboarding-indicators"></div>
+                <button id="onboarding-next">Next</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Audio System -->
+    <script src="audio/dynamic-ambient-system.js"></script>
+    <script src="audio/audio-file-manager.js"></script>
+    <script src="audio/soundscape-controller.js"></script>
+    
+    <!-- Visual System -->
+    <script src="pixel-animation-system.js"></script>
+    <script src="dynamic-background-system.js"></script>
+    <script src="interface-animations.js"></script>
+    
+    <!-- Conversation System -->
+    <script src="conversation-memory-system.js"></script>
+    <script src="emotional-intelligence-framework.js"></script>
+    <script src="natural-conversation-flow.js"></script>
+    <script src="conversation-interface.js"></script>
+    
+    <!-- Onboarding -->
+    <script src="onboarding-system.js"></script>
+    
+    <!-- Voice Synthesis -->
+    <script src="voice-synthesis.js"></script>
+    
+    <!-- Main Application -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize systems
+            const pixelElement = document.getElementById('pixel');
+            const backgroundContainer = document.getElementById('background-container');
+            const conversationHistory = document.getElementById('conversation-history');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const micButton = document.getElementById('mic-button');
+            const ambientToggle = document.getElementById('ambient-toggle');
+            const ambientVolume = document.getElementById('ambient-volume');
+            const voiceTest = document.getElementById('voice-test');
+            const voiceVolume = document.getElementById('voice-volume');
+            const helpButton = document.getElementById('help-button');
+            const ambientStatus = document.getElementById('ambient-status').querySelector('span');
+            const soundscapeDisplay = document.getElementById('soundscape-display').querySelector('span');
+            const voiceStatus = document.getElementById('voice-status').querySelector('span');
+            const container = document.querySelector('.container');
+            
+            // Initialize all systems
+            console.log('Initializing MeAI Enhanced Prototype...');
+            
+            // Initialize audio systems
+            const soundscapeController = new SoundscapeController();
+            soundscapeController.initialize();
+            
+            // Initialize visual systems
+            const pixelAnimation = new PixelAnimationSystem(pixelElement);
+            pixelAnimation.initialize();
+            
+            const backgroundSystem = new DynamicBackgroundSystem(backgroundContainer);
+            backgroundSystem.initialize();
+            
+            const interfaceAnimations = new InterfaceAnimations();
+            interfaceAnimations.initialize({
+                container,
+                conversationHistory,
+                messageInput,
+                sendButton,
+                micButton,
+                pixel: pixelElement
+            });
+            
+            // Initialize voice synthesis
+            const voiceSynthesis = new VoiceSynthesisManager();
+            voiceSynthesis.initialize();
+            
+            // Initialize conversation systems
+            const memorySystem = new ConversationMemorySystem();
+            memorySystem.initialize();
+            
+            const emotionalIntelligence = new EmotionalIntelligenceFramework(
+                memorySystem, pixelAnimation, backgroundSystem
+            );
+            emotionalIntelligence.initialize();
+            
+            const conversationFlow = new NaturalConversationFlow(
+                memorySystem, emotionalIntelligence
+            );
+            conversationFlow.initialize();
+            
+            // Initialize conversation interface
+            const conversationInterface = new ConversationInterface(
+                voiceSynthesis, conversationHistory, messageInput, sendButton, micButton
+            );
+            conversationInterface.initialize();
+            
+            // Initialize onboarding system
+            const onboardingSystem = new OnboardingSystem();
+            onboardingSystem.initialize();
+            
+            // Set up event handlers
+            ambientToggle.addEventListener('click', function() {
+                if (soundscapeController.getState().isPlaying) {
+                    soundscapeController.stop();
+                    ambientStatus.textContent = 'Off';
+                    interfaceAnimations.showNotification('Ambient sound turned off', 'info', 2000);
+                } else {
+                    soundscapeController.play();
+                    ambientStatus.textContent = 'On';
+                    interfaceAnimations.showNotification('Ambient sound turned on', 'info', 2000);
+                }
+                
+                // Animate button click
+                interfaceAnimations.animateButtonClick(this);
+            });
+            
+            ambientVolume.addEventListener('input', function() {
+                soundscapeController.setVolume(parseFloat(this.value));
+            });
+            
+            voiceTest.addEventListener('click', function() {
+                voiceStatus.textContent = 'Speaking...';
+                voiceSynthesis.speak('Hello, I am MeAI, your relational AI companion.');
+                pixelAnimation.animateSpeech('Hello, I am MeAI, your relational AI companion.', 3000);
+                
+                // Animate button click
+                interfaceAnimations.animateButtonClick(this);
+                
+                setTimeout(() => {
+                    voiceStatus.textContent = 'Ready';
+                }, 3000);
+            });
+            
+            voiceVolume.addEventListener('input', function() {
+                voiceSynthesis.setVolume(parseFloat(this.value));
+            });
+            
+            helpButton.addEventListener('click', function() {
+                // Animate button click
+                interfaceAnimations.animateButtonClick(this);
+                
+                // Show notification
+                interfaceAnimations.showNotification('Opening help guide', 'info', 2000);
+                
+                // Start onboarding with animation
+                interfaceAnimations.animatePageTransition(() => {
+                    onboardingSystem.start();
+                });
+            });
+            
+            // Enhanced conversation interface with animations
+            const originalAddMessage = conversationInterface.addMessage;
+            conversationInterface.addMessage = function(message, sender) {
+                // Create message element
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', `message-${sender}`);
+                
+                // Add to conversation history
+                this.conversationHistory.appendChild(messageElement);
+                
+                // Animate message addition
+                interfaceAnimations.animateMessageAddition(messageElement, sender);
+                
+                // If MeAI message, show typing indicator and animate typing
+                if (sender === 'meai') {
+                    const typingIndicator = interfaceAnimations.showTypingIndicator();
+                    
+                    // Hide typing indicator after delay
+                    setTimeout(() => {
+                        interfaceAnimations.hideTypingIndicator(typingIndicator);
+                        
+                        // Animate typing effect
+                        interfaceAnimations.animateTyping(messageElement, message, () => {
+                            // Scroll to bottom after typing
+                            this.conversationHistory.scrollTop = this.conversationHistory.scrollHeight;
+                        });
+                    }, 1000);
+                } else {
+                    // For user messages, just set the text
+                    messageElement.textContent = message;
+                }
+                
+                // Scroll to bottom
+                this.conversationHistory.scrollTop = this.conversationHistory.scrollHeight;
+            };
+            
+            // Connect conversation interface to other systems
+            conversationInterface.onUserMessage = function(message) {
+                // Process message through memory system
+                const memoryResult = memorySystem.processMessage({
+                    text: message,
+                    sender: 'user',
+                    timestamp: new Date()
+                });
+                
+                // Process through emotional intelligence
+                const emotionResult = emotionalIntelligence.processUserMessage(
+                    { text: message },
+                    memoryResult.currentContext
+                );
+                
+                // Animate pixel for listening
+                pixelAnimation.animateListening();
+                
+                // Generate response with natural conversation flow
+                const flowResult = conversationFlow.processMessage(
+                    { text: message },
+                    {
+                        topics: memoryResult.currentContext.topic ? [memoryResult.currentContext.topic] : [],
+                        messageCount: memoryResult.currentContext.messageCount,
+                        isFirstResponse: memoryResult.currentContext.messageCount <= 1
+                    }
+                );
+                
+                // Simulate thinking time
+                setTimeout(() => {
+                    // Generate emotional response
+                    const responseEmotion = emotionalIntelligence.generateResponse(
+                        emotionResult.detectedEmotions,
+                        emotionResult.responseStrategy,
+                        memoryResult.currentContext
+                    );
+                    
+                    // Use the natural language response
+                    const response = flowResult.content;
+                    
+                    // Add response to conversation
+                    conversationInterface.addMessage(response, 'meai');
+                    
+                    // Speak response
+                    voiceSynthesis.speak(response);
+                    
+                    // Animate pixel for speech
+                    pixelAnimation.animateSpeech(response, response.length * 80);
+                    
+                    // Add to memory system
+                    memorySystem.processMessage({
+                        text: response,
+                        sender: 'meai',
+                        timestamp: new Date()
+                    });
+                    
+                }, flowResult.timing.thinkingTime);
+            };
+            
+            // Update soundscape display when it changes
+            soundscapeController.onSoundscapeChange = function(soundscape) {
+                const name = soundscapeController.getSoundscapeName(soundscape);
+                soundscapeDisplay.textContent = name;
+                
+                // Show notification
+                interfaceAnimations.showNotification(`Soundscape changed to ${name}`, 'info', 2000);
+            };
+            
+            // Enhance microphone button with animation
+            const originalStartListening = conversationInterface.startListening;
+            conversationInterface.startListening = function() {
+                originalStartListening.call(this);
+                interfaceAnimations.animateMicrophone(true);
+            };
+            
+            const originalStopListening = conversationInterface.stopListening;
+            conversationInterface.stopListening = function() {
+                originalStopListening.call(this);
+                interfaceAnimations.animateMicrophone(false);
+            };
+            
+            // Start with a welcome message
+            setTimeout(() => {
+                const welcomeMessage = "Hello, I'm MeAI, your relational AI companion. How are you feeling today?";
+                
+                // Show notification
+                interfaceAnimations.showNotification('MeAI Enhanced Prototype Initialized', 'success', 3000);
+                
+                // Add welcome message with animation
+                conversationInterface.addMessage(welcomeMessage, 'meai');
+                
+                // Speak welcome message
+                voiceSynthesis.speak(welcomeMessage);
+                
+                // Animate pixel for speech
+                pixelAnimation.animateSpeech(welcomeMessage, 3000);
+                
+                // Start ambient sound
+                soundscapeController.play();
+                ambientStatus.textContent = 'On';
+                
+                // Show onboarding for first-time users
+                if (!localStorage.getItem('meai_onboarding_complete')) {
+                    setTimeout(() => {
+                        interfaceAnimations.animatePageTransition(() => {
+                            onboardingSystem.start();
+                        });
+                    }, 2000);
+                }
+            }, 1000);
+            
+            console.log('MeAI Enhanced Prototype initialized successfully!');
+        });
+    </script>
+</body>
+</html>
