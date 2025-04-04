@@ -1,1158 +1,1358 @@
-// Advanced User Profiles System for MeAI
-// This system enhances user personalization with comprehensive profiles and adaptive interfaces
+/**
+ * Advanced User Profile System
+ * 
+ * This module provides sophisticated user profiling capabilities with preference learning,
+ * adaptive personalization, and multi-user support.
+ */
 
 class AdvancedUserProfileSystem {
     constructor() {
-        this.initialized = false;
-        this.currentProfile = null;
-        this.defaultProfile = {
-            id: 'default',
+        // Dependencies
+        this.eventSystem = window.eventSystem;
+        this.storageManager = window.storageManager;
+        this.longTermMemorySystem = window.longTermMemorySystem;
+        
+        // User profiles
+        this.profiles = new Map();
+        this.activeProfile = null;
+        
+        // Default profile template
+        this.defaultProfileTemplate = {
+            id: null,
             name: 'Default User',
+            created: Date.now(),
+            lastAccessed: Date.now(),
             preferences: {
                 theme: 'default',
-                volume: 0.8,
-                speechRate: 1.0,
-                accessibility: {
-                    highContrast: false,
-                    largeText: false,
-                    reducedMotion: false,
-                    screenReader: false,
-                    colorBlindMode: 'none' // none, protanopia, deuteranopia, tritanopia
-                }
+                voiceType: 'neutral',
+                responseLength: 'medium',
+                formality: 'casual',
+                humor: 'moderate',
+                audioEnabled: true,
+                visualizationQuality: 'auto',
+                notificationsEnabled: true
             },
             interests: [],
-            behavior: {
-                sessionCount: 0,
-                totalInteractionTime: 0,
-                lastSession: null,
-                frequentTopics: {},
-                responsePreferences: {}
+            dislikedTopics: [],
+            learningPreferences: {
+                adaptationRate: 0.3,  // How quickly to adapt to user preferences (0-1)
+                confidenceThreshold: 0.6,  // Confidence required to apply learned preferences
+                explorationRate: 0.2  // Rate of exploring new options vs. exploiting known preferences
             },
-            conversationStyle: 'balanced', // casual, balanced, formal
-            notifications: {
-                enabled: true,
-                types: {
-                    updates: true,
-                    reminders: true,
-                    suggestions: true
-                }
+            accessibility: {
+                highContrast: false,
+                largeText: false,
+                reducedMotion: false,
+                screenReader: false,
+                captionsEnabled: false
             },
-            created: Date.now(),
-            lastModified: Date.now()
+            conversationStyle: {
+                pace: 'moderate',
+                detailLevel: 'balanced',
+                technicalLevel: 'adaptive',
+                emotionalTone: 'balanced'
+            },
+            privacySettings: {
+                dataCollection: 'minimal',
+                historyRetention: '30days',
+                thirdPartySharing: false
+            },
+            learnedPreferences: {},
+            interactionHistory: {
+                totalSessions: 0,
+                totalInteractions: 0,
+                averageSessionLength: 0,
+                lastSessionTimestamp: null,
+                sessionLengths: []
+            }
         };
         
-        // Initialize system
+        // Preference learning models
+        this.preferenceModels = {};
+        
+        // Initialize
         this.init();
     }
     
+    /**
+     * Initialize the user profile system
+     */
     async init() {
         try {
-            // Check for storage support
-            if (!window.localStorage) {
-                console.warn('LocalStorage not supported. Using memory storage.');
-                this.useMemoryStorage();
-                return;
-            }
-            
-            // Initialize storage
-            this.storage = window.localStorage;
-            
-            // Load profiles
+            // Load profiles from storage
             await this.loadProfiles();
             
-            // Load current profile
-            await this.loadCurrentProfile();
+            // Set up event listeners
+            this.setupEventListeners();
             
-            this.initialized = true;
-            console.log('User profile system initialized');
+            // Initialize preference learning models
+            this.initializePreferenceModels();
             
-            // Publish initialization event
-            if (window.eventSystem) {
-                window.eventSystem.publish('profile-system-initialized', { success: true });
-            }
+            // Publish initialization success event
+            this.eventSystem.publish('user-profile-system-initialized', {
+                success: true,
+                profileCount: this.profiles.size,
+                activeProfile: this.activeProfile ? this.activeProfile.id : null
+            });
             
-            // Apply current profile settings
-            this.applyProfileSettings();
+            console.log('Advanced User Profile System initialized successfully');
         } catch (error) {
-            console.error('Error initializing user profile system:', error);
-            this.useMemoryStorage();
-        }
-    }
-    
-    useMemoryStorage() {
-        // Use in-memory storage as fallback
-        this.memoryStorage = {
-            profiles: {},
-            currentProfileId: null
-        };
-        
-        // Create default profile
-        this.memoryStorage.profiles[this.defaultProfile.id] = this.defaultProfile;
-        this.memoryStorage.currentProfileId = this.defaultProfile.id;
-        this.currentProfile = this.defaultProfile;
-        
-        this.initialized = true;
-        console.log('User profile system initialized with memory storage');
-        
-        // Publish initialization event
-        if (window.eventSystem) {
-            window.eventSystem.publish('profile-system-initialized', { 
-                success: true, 
-                memoryMode: true 
+            console.error('Error initializing Advanced User Profile System:', error);
+            
+            // Publish initialization failure event
+            this.eventSystem.publish('user-profile-system-initialized', {
+                success: false,
+                error: error.message
             });
         }
     }
     
+    /**
+     * Set up event listeners
+     */
+    setupEventListeners() {
+        // Listen for preference update events
+        this.eventSystem.subscribe('update-user-preference', (data) => {
+            this.updatePreference(data.category, data.key, data.value);
+        });
+        
+        // Listen for profile switch events
+        this.eventSystem.subscribe('switch-user-profile', (data) => {
+            this.switchProfile(data.profileId);
+        });
+        
+        // Listen for profile creation events
+        this.eventSystem.subscribe('create-user-profile', (data) => {
+            this.createProfile(data.name, data.initialPreferences);
+        });
+        
+        // Listen for profile deletion events
+        this.eventSystem.subscribe('delete-user-profile', (data) => {
+            this.deleteProfile(data.profileId);
+        });
+        
+        // Listen for session start events
+        this.eventSystem.subscribe('session-started', () => {
+            this.recordSessionStart();
+        });
+        
+        // Listen for session end events
+        this.eventSystem.subscribe('session-ended', (data) => {
+            this.recordSessionEnd(data.duration);
+        });
+        
+        // Listen for interaction events
+        this.eventSystem.subscribe('user-interaction', (data) => {
+            this.processInteraction(data);
+        });
+        
+        // Listen for preference learning events
+        this.eventSystem.subscribe('learn-user-preference', (data) => {
+            this.learnPreference(data.category, data.key, data.value, data.context);
+        });
+        
+        // Listen for profile export events
+        this.eventSystem.subscribe('export-user-profile', () => {
+            this.exportActiveProfile();
+        });
+        
+        // Listen for profile import events
+        this.eventSystem.subscribe('import-user-profile', (data) => {
+            this.importProfile(data.profileData);
+        });
+    }
+    
+    /**
+     * Load profiles from storage
+     */
     async loadProfiles() {
         try {
             // Get profiles from storage
-            const profilesJson = this.storage.getItem('meai_profiles');
+            const profilesData = await this.storageManager.get('userProfiles');
             
-            if (profilesJson) {
-                this.profiles = JSON.parse(profilesJson);
-            } else {
-                // Initialize with default profile
-                this.profiles = {
-                    [this.defaultProfile.id]: this.defaultProfile
-                };
+            if (profilesData) {
+                // Parse profiles
+                const parsedProfiles = JSON.parse(profilesData);
                 
-                // Save to storage
-                this.storage.setItem('meai_profiles', JSON.stringify(this.profiles));
+                // Load profiles into map
+                for (const profile of parsedProfiles) {
+                    this.profiles.set(profile.id, profile);
+                }
+                
+                // Get active profile ID
+                const activeProfileId = await this.storageManager.get('activeProfileId');
+                
+                if (activeProfileId && this.profiles.has(activeProfileId)) {
+                    // Set active profile
+                    this.activeProfile = this.profiles.get(activeProfileId);
+                    this.activeProfile.lastAccessed = Date.now();
+                } else if (this.profiles.size > 0) {
+                    // Set first profile as active
+                    const firstProfileId = this.profiles.keys().next().value;
+                    this.activeProfile = this.profiles.get(firstProfileId);
+                    this.activeProfile.lastAccessed = Date.now();
+                } else {
+                    // Create default profile
+                    await this.createDefaultProfile();
+                }
+            } else {
+                // No profiles found, create default
+                await this.createDefaultProfile();
             }
             
-            return true;
+            // Save updated profiles
+            await this.saveProfiles();
         } catch (error) {
             console.error('Error loading profiles:', error);
             
-            // Initialize with default profile
-            this.profiles = {
-                [this.defaultProfile.id]: this.defaultProfile
-            };
-            
-            return false;
+            // Create default profile as fallback
+            await this.createDefaultProfile();
         }
     }
     
-    async loadCurrentProfile() {
-        try {
-            // Get current profile ID from storage
-            const currentProfileId = this.storage.getItem('meai_current_profile');
-            
-            if (currentProfileId && this.profiles[currentProfileId]) {
-                this.currentProfile = this.profiles[currentProfileId];
-            } else {
-                // Use default profile
-                this.currentProfile = this.profiles[this.defaultProfile.id];
-                
-                // Save to storage
-                this.storage.setItem('meai_current_profile', this.defaultProfile.id);
-            }
-            
-            return true;
-        } catch (error) {
-            console.error('Error loading current profile:', error);
-            
-            // Use default profile
-            this.currentProfile = this.profiles[this.defaultProfile.id];
-            
-            return false;
-        }
-    }
-    
+    /**
+     * Save profiles to storage
+     */
     async saveProfiles() {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
         try {
-            if (this.memoryStorage) {
-                // Using memory storage
-                this.memoryStorage.profiles = this.profiles;
-                return true;
-            } else {
-                // Save to localStorage
-                this.storage.setItem('meai_profiles', JSON.stringify(this.profiles));
-                return true;
+            // Convert profiles map to array
+            const profilesArray = Array.from(this.profiles.values());
+            
+            // Save profiles to storage
+            await this.storageManager.set('userProfiles', JSON.stringify(profilesArray));
+            
+            // Save active profile ID
+            if (this.activeProfile) {
+                await this.storageManager.set('activeProfileId', this.activeProfile.id);
             }
         } catch (error) {
             console.error('Error saving profiles:', error);
-            return false;
+            throw error;
         }
     }
     
-    async saveCurrentProfile() {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
+    /**
+     * Create default profile
+     */
+    async createDefaultProfile() {
+        // Create profile with default template
+        const defaultProfile = { ...this.defaultProfileTemplate };
+        defaultProfile.id = this.generateProfileId();
         
+        // Add to profiles map
+        this.profiles.set(defaultProfile.id, defaultProfile);
+        
+        // Set as active profile
+        this.activeProfile = defaultProfile;
+        
+        // Save profiles
+        await this.saveProfiles();
+        
+        return defaultProfile;
+    }
+    
+    /**
+     * Generate a unique profile ID
+     * @returns {string} Unique profile ID
+     */
+    generateProfileId() {
+        return 'profile_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    /**
+     * Create a new user profile
+     * @param {string} name - Profile name
+     * @param {Object} initialPreferences - Initial preferences
+     * @returns {Promise<Object>} Created profile
+     */
+    async createProfile(name, initialPreferences = {}) {
         try {
-            if (this.memoryStorage) {
-                // Using memory storage
-                this.memoryStorage.currentProfileId = this.currentProfile.id;
-                return true;
-            } else {
-                // Save to localStorage
-                this.storage.setItem('meai_current_profile', this.currentProfile.id);
-                return true;
+            // Create profile with default template
+            const profile = { ...this.defaultProfileTemplate };
+            profile.id = this.generateProfileId();
+            profile.name = name || profile.name;
+            profile.created = Date.now();
+            profile.lastAccessed = Date.now();
+            
+            // Apply initial preferences
+            if (initialPreferences) {
+                for (const category in initialPreferences) {
+                    if (profile[category] && typeof profile[category] === 'object') {
+                        profile[category] = { ...profile[category], ...initialPreferences[category] };
+                    } else {
+                        profile[category] = initialPreferences[category];
+                    }
+                }
             }
-        } catch (error) {
-            console.error('Error saving current profile:', error);
-            return false;
-        }
-    }
-    
-    // Profile Management Methods
-    
-    async createProfile(profileData = {}) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Generate unique ID
-            const profileId = `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             
-            // Create new profile by merging with default
-            const newProfile = {
-                ...JSON.parse(JSON.stringify(this.defaultProfile)), // Deep copy
-                ...profileData,
-                id: profileId,
-                created: Date.now(),
-                lastModified: Date.now()
-            };
+            // Add to profiles map
+            this.profiles.set(profile.id, profile);
             
-            // Add to profiles
-            this.profiles[profileId] = newProfile;
+            // Set as active profile
+            this.activeProfile = profile;
             
             // Save profiles
             await this.saveProfiles();
-            
-            console.log(`Created profile: ${profileId}`);
             
             // Publish profile created event
-            if (window.eventSystem) {
-                window.eventSystem.publish('profile-created', { 
-                    profileId: profileId,
-                    profileName: newProfile.name
-                });
-            }
+            this.eventSystem.publish('user-profile-created', {
+                profileId: profile.id,
+                name: profile.name
+            });
             
-            return profileId;
+            return profile;
         } catch (error) {
             console.error('Error creating profile:', error);
-            return null;
+            throw error;
         }
     }
     
-    async getProfile(profileId) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        if (!profileId) {
-            return null;
-        }
-        
-        return this.profiles[profileId] || null;
-    }
-    
-    async updateProfile(profileId, updates) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            const profile = this.profiles[profileId];
-            
-            if (!profile) {
-                console.error(`Profile ${profileId} not found`);
-                return false;
-            }
-            
-            // Apply updates
-            this.deepMerge(profile, updates);
-            
-            // Update modification timestamp
-            profile.lastModified = Date.now();
-            
-            // Save profiles
-            await this.saveProfiles();
-            
-            // If updating current profile, apply settings
-            if (this.currentProfile.id === profileId) {
-                this.currentProfile = profile;
-                this.applyProfileSettings();
-            }
-            
-            console.log(`Updated profile: ${profileId}`);
-            
-            // Publish profile updated event
-            if (window.eventSystem) {
-                window.eventSystem.publish('profile-updated', { 
-                    profileId: profileId,
-                    profileName: profile.name
-                });
-            }
-            
-            return true;
-        } catch (error) {
-            console.error(`Error updating profile ${profileId}:`, error);
-            return false;
-        }
-    }
-    
-    async deleteProfile(profileId) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Check if profile exists
-            if (!this.profiles[profileId]) {
-                console.error(`Profile ${profileId} not found`);
-                return false;
-            }
-            
-            // Check if trying to delete default profile
-            if (profileId === this.defaultProfile.id) {
-                console.error('Cannot delete default profile');
-                return false;
-            }
-            
-            // Check if trying to delete current profile
-            if (this.currentProfile.id === profileId) {
-                // Switch to default profile
-                this.currentProfile = this.profiles[this.defaultProfile.id];
-                await this.saveCurrentProfile();
-                this.applyProfileSettings();
-            }
-            
-            // Delete profile
-            delete this.profiles[profileId];
-            
-            // Save profiles
-            await this.saveProfiles();
-            
-            console.log(`Deleted profile: ${profileId}`);
-            
-            // Publish profile deleted event
-            if (window.eventSystem) {
-                window.eventSystem.publish('profile-deleted', { 
-                    profileId: profileId
-                });
-            }
-            
-            return true;
-        } catch (error) {
-            console.error(`Error deleting profile ${profileId}:`, error);
-            return false;
-        }
-    }
-    
+    /**
+     * Switch to a different user profile
+     * @param {string} profileId - ID of the profile to switch to
+     * @returns {Promise<boolean>} Whether the switch was successful
+     */
     async switchProfile(profileId) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
         try {
             // Check if profile exists
-            if (!this.profiles[profileId]) {
+            if (!this.profiles.has(profileId)) {
                 console.error(`Profile ${profileId} not found`);
                 return false;
             }
             
-            // Switch profile
-            this.currentProfile = this.profiles[profileId];
+            // Get profile
+            const profile = this.profiles.get(profileId);
             
-            // Save current profile
-            await this.saveCurrentProfile();
+            // Update last accessed timestamp
+            profile.lastAccessed = Date.now();
             
-            // Apply profile settings
-            this.applyProfileSettings();
+            // Set as active profile
+            this.activeProfile = profile;
             
-            console.log(`Switched to profile: ${profileId}`);
+            // Save profiles
+            await this.saveProfiles();
             
             // Publish profile switched event
-            if (window.eventSystem) {
-                window.eventSystem.publish('profile-switched', { 
-                    profileId: profileId,
-                    profileName: this.currentProfile.name
-                });
-            }
+            this.eventSystem.publish('user-profile-switched', {
+                profileId: profile.id,
+                name: profile.name
+            });
+            
+            // Apply profile settings
+            this.applyProfileSettings(profile);
             
             return true;
         } catch (error) {
-            console.error(`Error switching to profile ${profileId}:`, error);
+            console.error('Error switching profile:', error);
             return false;
         }
     }
     
-    getCurrentProfile() {
-        return this.currentProfile;
-    }
-    
-    getAllProfiles() {
-        return Object.values(this.profiles);
-    }
-    
-    // Preference Management Methods
-    
-    async setPreference(key, value) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Parse key path (e.g., "preferences.theme" -> ["preferences", "theme"])
-            const keyPath = key.split('.');
-            
-            // Navigate to the correct object
-            let target = this.currentProfile;
-            for (let i = 0; i < keyPath.length - 1; i++) {
-                const segment = keyPath[i];
-                
-                if (!target[segment]) {
-                    target[segment] = {};
-                }
-                
-                target = target[segment];
-            }
-            
-            // Set the value
-            const finalKey = keyPath[keyPath.length - 1];
-            target[finalKey] = value;
-            
-            // Update modification timestamp
-            this.currentProfile.lastModified = Date.now();
-            
-            // Save profiles
-            await this.saveProfiles();
-            
-            // Apply settings if necessary
-            this.applyProfileSettings();
-            
-            console.log(`Set preference ${key} to ${value}`);
-            
-            // Publish preference updated event
-            if (window.eventSystem) {
-                window.eventSystem.publish('preference-updated', { 
-                    key: key,
-                    value: value
-                });
-            }
-            
-            return true;
-        } catch (error) {
-            console.error(`Error setting preference ${key}:`, error);
-            return false;
-        }
-    }
-    
-    async getPreference(key, defaultValue = null) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Parse key path
-            const keyPath = key.split('.');
-            
-            // Navigate to the value
-            let target = this.currentProfile;
-            for (const segment of keyPath) {
-                if (target === undefined || target === null) {
-                    return defaultValue;
-                }
-                
-                target = target[segment];
-            }
-            
-            return target !== undefined ? target : defaultValue;
-        } catch (error) {
-            console.error(`Error getting preference ${key}:`, error);
-            return defaultValue;
-        }
-    }
-    
-    // Interest Tracking Methods
-    
-    async addInterest(interest) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Ensure interests array exists
-            if (!this.currentProfile.interests) {
-                this.currentProfile.interests = [];
-            }
-            
-            // Check if interest already exists
-            if (!this.currentProfile.interests.includes(interest)) {
-                // Add interest
-                this.currentProfile.interests.push(interest);
-                
-                // Update modification timestamp
-                this.currentProfile.lastModified = Date.now();
-                
-                // Save profiles
-                await this.saveProfiles();
-                
-                console.log(`Added interest: ${interest}`);
-                
-                // Publish interest added event
-                if (window.eventSystem) {
-                    window.eventSystem.publish('interest-added', { 
-                        interest: interest
-                    });
-                }
-            }
-            
-            return true;
-        } catch (error) {
-            console.error(`Error adding interest ${interest}:`, error);
-            return false;
-        }
-    }
-    
-    async removeInterest(interest) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Ensure interests array exists
-            if (!this.currentProfile.interests) {
-                return true;
-            }
-            
-            // Find interest index
-            const index = this.currentProfile.interests.indexOf(interest);
-            
-            if (index !== -1) {
-                // Remove interest
-                this.currentProfile.interests.splice(index, 1);
-                
-                // Update modification timestamp
-                this.currentProfile.lastModified = Date.now();
-                
-                // Save profiles
-                await this.saveProfiles();
-                
-                console.log(`Removed interest: ${interest}`);
-                
-                // Publish interest removed event
-                if (window.eventSystem) {
-                    window.eventSystem.publish('interest-removed', { 
-                        interest: interest
-                    });
-                }
-            }
-            
-            return true;
-        } catch (error) {
-            console.error(`Error removing interest ${interest}:`, error);
-            return false;
-        }
-    }
-    
-    async getInterests() {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        return this.currentProfile.interests || [];
-    }
-    
-    // Behavior Tracking Methods
-    
-    async trackBehavior(action, data = {}) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Ensure behavior object exists
-            if (!this.currentProfile.behavior) {
-                this.currentProfile.behavior = {
-                    sessionCount: 0,
-                    totalInteractionTime: 0,
-                    lastSession: null,
-                    frequentTopics: {},
-                    responsePreferences: {}
-                };
-            }
-            
-            const behavior = this.currentProfile.behavior;
-            
-            // Handle different action types
-            switch (action) {
-                case 'session_start':
-                    behavior.sessionCount++;
-                    behavior.lastSession = Date.now();
-                    break;
-                    
-                case 'session_end':
-                    if (behavior.lastSession) {
-                        const sessionDuration = (Date.now() - behavior.lastSession) / 1000; // in seconds
-                        behavior.totalInteractionTime += sessionDuration;
-                    }
-                    break;
-                    
-                case 'topic_discussed':
-                    if (data.topic) {
-                        if (!behavior.frequentTopics[data.topic]) {
-                            behavior.frequentTopics[data.topic] = 0;
-                        }
-                        behavior.frequentTopics[data.topic]++;
-                    }
-                    break;
-                    
-                case 'response_preference':
-                    if (data.type && data.value !== undefined) {
-                        if (!behavior.responsePreferences[data.type]) {
-                            behavior.responsePreferences[data.type] = 0;
-                        }
-                        behavior.responsePreferences[data.type] += data.value;
-                    }
-                    break;
-                    
-                default:
-                    // Custom behavior tracking
-                    if (!behavior.custom) {
-                        behavior.custom = {};
-                    }
-                    
-                    behavior.custom[action] = data;
-                    break;
-            }
-            
-            // Update modification timestamp
-            this.currentProfile.lastModified = Date.now();
-            
-            // Save profiles
-            await this.saveProfiles();
-            
-            return true;
-        } catch (error) {
-            console.error(`Error tracking behavior ${action}:`, error);
-            return false;
-        }
-    }
-    
-    async getBehaviorInsights() {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            const behavior = this.currentProfile.behavior || {};
-            
-            // Calculate insights
-            const insights = {
-                engagementLevel: this.calculateEngagementLevel(behavior),
-                topInterests: this.getTopInterests(behavior),
-                interactionStyle: this.determineInteractionStyle(behavior),
-                sessionFrequency: this.calculateSessionFrequency(behavior),
-                recommendedTopics: this.generateRecommendedTopics(behavior)
-            };
-            
-            return insights;
-        } catch (error) {
-            console.error('Error getting behavior insights:', error);
-            return {};
-        }
-    }
-    
-    calculateEngagementLevel(behavior) {
-        // Simple engagement calculation based on session count and total time
-        if (!behavior.sessionCount) {
-            return 'new';
-        }
-        
-        const avgSessionTime = behavior.totalInteractionTime / behavior.sessionCount;
-        
-        if (behavior.sessionCount < 3) {
-            return 'beginner';
-        } else if (behavior.sessionCount < 10) {
-            return avgSessionTime < 60 ? 'casual' : 'regular';
-        } else {
-            return avgSessionTime < 300 ? 'regular' : 'engaged';
-        }
-    }
-    
-    getTopInterests(behavior) {
-        const topics = behavior.frequentTopics || {};
-        
-        // Sort topics by frequency
-        return Object.entries(topics)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(entry => entry[0]);
-    }
-    
-    determineInteractionStyle(behavior) {
-        const preferences = behavior.responsePreferences || {};
-        
-        // Calculate scores for different styles
-        let conciseScore = preferences.concise || 0;
-        let detailedScore = preferences.detailed || 0;
-        let casualScore = preferences.casual || 0;
-        let formalScore = preferences.formal || 0;
-        
-        // Determine primary style
-        if (conciseScore > detailedScore && conciseScore > casualScore && conciseScore > formalScore) {
-            return 'concise';
-        } else if (detailedScore > conciseScore && detailedScore > casualScore && detailedScore > formalScore) {
-            return 'detailed';
-        } else if (casualScore > conciseScore && casualScore > detailedScore && casualScore > formalScore) {
-            return 'casual';
-        } else if (formalScore > conciseScore && formalScore > detailedScore && formalScore > casualScore) {
-            return 'formal';
-        } else {
-            return 'balanced';
-        }
-    }
-    
-    calculateSessionFrequency(behavior) {
-        if (!behavior.sessionCount || !behavior.lastSession) {
-            return 'new';
-        }
-        
-        const daysSinceLastSession = (Date.now() - behavior.lastSession) / (1000 * 60 * 60 * 24);
-        const totalDays = Math.max(1, daysSinceLastSession);
-        const sessionsPerDay = behavior.sessionCount / totalDays;
-        
-        if (sessionsPerDay < 0.1) {
-            return 'rare';
-        } else if (sessionsPerDay < 0.5) {
-            return 'occasional';
-        } else if (sessionsPerDay < 1) {
-            return 'regular';
-        } else {
-            return 'frequent';
-        }
-    }
-    
-    generateRecommendedTopics(behavior) {
-        // This would implement a recommendation algorithm based on user behavior
-        // For now, return a simple placeholder
-        return ['AI advancements', 'Personalization', 'Voice interfaces', 'Ambient computing', 'Digital wellbeing'];
-    }
-    
-    // UI Adaptation Methods
-    
-    applyProfileSettings() {
-        if (!this.initialized || !this.currentProfile) {
-            return;
-        }
-        
+    /**
+     * Apply profile settings to the system
+     * @param {Object} profile - User profile
+     */
+    applyProfileSettings(profile) {
         try {
             // Apply theme
-            this.applyTheme(this.currentProfile.preferences.theme);
+            this.eventSystem.publish('theme-change', {
+                theme: profile.preferences.theme
+            });
             
-            // Apply accessibility settings
-            this.applyAccessibilitySettings(this.currentProfile.preferences.accessibility);
+            // Apply voice settings
+            this.eventSystem.publish('voice-type-change', {
+                voiceType: profile.preferences.voiceType
+            });
+            
+            // Apply visualization quality
+            this.eventSystem.publish('quality-setting-change', {
+                quality: profile.preferences.visualizationQuality
+            });
             
             // Apply audio settings
-            this.applyAudioSettings(this.currentProfile.preferences.volume, this.currentProfile.preferences.speechRate);
+            this.eventSystem.publish('audio-mute-change', {
+                muted: !profile.preferences.audioEnabled
+            });
+            
+            // Apply accessibility settings
+            this.eventSystem.publish('accessibility-settings-change', {
+                settings: profile.accessibility
+            });
             
             // Apply conversation style
-            this.applyConversationStyle(this.currentProfile.conversationStyle);
+            this.eventSystem.publish('conversation-style-change', {
+                style: profile.conversationStyle
+            });
             
-            console.log('Applied profile settings');
-            
-            // Publish settings applied event
-            if (window.eventSystem) {
-                window.eventSystem.publish('profile-settings-applied', { 
-                    profileId: this.currentProfile.id,
-                    profileName: this.currentProfile.name
-                });
-            }
+            // Apply privacy settings
+            this.eventSystem.publish('privacy-settings-change', {
+                settings: profile.privacySettings
+            });
         } catch (error) {
             console.error('Error applying profile settings:', error);
         }
     }
     
-    applyTheme(theme) {
-        // Apply theme to document
-        document.documentElement.setAttribute('data-theme', theme);
-        
-        // Publish theme change event
-        if (window.eventSystem) {
-            window.eventSystem.publish('theme-changed', { theme });
-        }
-    }
-    
-    applyAccessibilitySettings(settings) {
-        if (!settings) return;
-        
-        // Apply high contrast
-        if (settings.highContrast) {
-            document.documentElement.classList.add('high-contrast');
-        } else {
-            document.documentElement.classList.remove('high-contrast');
-        }
-        
-        // Apply large text
-        if (settings.largeText) {
-            document.documentElement.classList.add('large-text');
-        } else {
-            document.documentElement.classList.remove('large-text');
-        }
-        
-        // Apply reduced motion
-        if (settings.reducedMotion) {
-            document.documentElement.classList.add('reduced-motion');
-        } else {
-            document.documentElement.classList.remove('reduced-motion');
-        }
-        
-        // Apply color blind mode
-        document.documentElement.setAttribute('data-color-blind', settings.colorBlindMode || 'none');
-        
-        // Apply screen reader optimizations
-        if (settings.screenReader) {
-            document.documentElement.classList.add('screen-reader-optimized');
-        } else {
-            document.documentElement.classList.remove('screen-reader-optimized');
-        }
-        
-        // Publish accessibility settings change event
-        if (window.eventSystem) {
-            window.eventSystem.publish('accessibility-settings-changed', settings);
-        }
-    }
-    
-    applyAudioSettings(volume, speechRate) {
-        // Apply volume if spatial audio system exists
-        if (window.spatialAudioSystem) {
-            window.spatialAudioSystem.setMasterVolume(volume);
-        }
-        
-        // Apply speech rate if voice synthesis exists
-        if (window.voiceSynthesis) {
-            window.voiceSynthesis.setRate(speechRate);
-        }
-        
-        // Publish audio settings change event
-        if (window.eventSystem) {
-            window.eventSystem.publish('audio-settings-changed', { 
-                volume, 
-                speechRate 
-            });
-        }
-    }
-    
-    applyConversationStyle(style) {
-        // Publish conversation style change event
-        if (window.eventSystem) {
-            window.eventSystem.publish('conversation-style-changed', { style });
-        }
-    }
-    
-    // Adaptive UI Methods
-    
-    getAdaptiveUIRecommendations() {
-        if (!this.initialized || !this.currentProfile) {
-            return {};
-        }
-        
+    /**
+     * Delete a user profile
+     * @param {string} profileId - ID of the profile to delete
+     * @returns {Promise<boolean>} Whether the deletion was successful
+     */
+    async deleteProfile(profileId) {
         try {
-            // Get behavior insights
-            const behavior = this.currentProfile.behavior || {};
-            const preferences = this.currentProfile.preferences || {};
-            
-            // Generate UI recommendations
-            const recommendations = {
-                layoutComplexity: this.recommendLayoutComplexity(behavior, preferences),
-                informationDensity: this.recommendInformationDensity(behavior, preferences),
-                interactionMode: this.recommendInteractionMode(behavior, preferences),
-                visualElements: this.recommendVisualElements(behavior, preferences),
-                contentPriorities: this.recommendContentPriorities(behavior, preferences)
-            };
-            
-            return recommendations;
-        } catch (error) {
-            console.error('Error generating adaptive UI recommendations:', error);
-            return {};
-        }
-    }
-    
-    recommendLayoutComplexity(behavior, preferences) {
-        // Determine appropriate layout complexity based on user behavior and preferences
-        
-        // Check accessibility preferences first
-        if (preferences.accessibility && (preferences.accessibility.largeText || preferences.accessibility.screenReader)) {
-            return 'simple';
-        }
-        
-        // Check engagement level
-        const engagementLevel = this.calculateEngagementLevel(behavior);
-        
-        if (engagementLevel === 'new' || engagementLevel === 'beginner') {
-            return 'simple';
-        } else if (engagementLevel === 'casual') {
-            return 'moderate';
-        } else {
-            return 'advanced';
-        }
-    }
-    
-    recommendInformationDensity(behavior, preferences) {
-        // Determine appropriate information density
-        
-        // Check accessibility preferences first
-        if (preferences.accessibility && (preferences.accessibility.largeText || preferences.accessibility.screenReader)) {
-            return 'low';
-        }
-        
-        // Check interaction style
-        const interactionStyle = this.determineInteractionStyle(behavior);
-        
-        if (interactionStyle === 'concise') {
-            return 'high';
-        } else if (interactionStyle === 'detailed') {
-            return 'medium';
-        } else {
-            return 'adaptive'; // Adjust based on context
-        }
-    }
-    
-    recommendInteractionMode(behavior, preferences) {
-        // Determine preferred interaction mode
-        
-        // Check accessibility preferences first
-        if (preferences.accessibility && preferences.accessibility.screenReader) {
-            return 'voice';
-        }
-        
-        // Default to multi-modal
-        return 'multi-modal';
-    }
-    
-    recommendVisualElements(behavior, preferences) {
-        // Determine appropriate visual elements
-        
-        // Check accessibility preferences first
-        if (preferences.accessibility && preferences.accessibility.reducedMotion) {
-            return {
-                animations: 'minimal',
-                transitions: 'simple',
-                effects: 'none'
-            };
-        }
-        
-        // Check theme
-        const theme = preferences.theme || 'default';
-        
-        if (theme === 'minimal') {
-            return {
-                animations: 'subtle',
-                transitions: 'simple',
-                effects: 'minimal'
-            };
-        } else if (theme === 'vibrant') {
-            return {
-                animations: 'dynamic',
-                transitions: 'elaborate',
-                effects: 'full'
-            };
-        } else {
-            return {
-                animations: 'moderate',
-                transitions: 'smooth',
-                effects: 'standard'
-            };
-        }
-    }
-    
-    recommendContentPriorities(behavior, preferences) {
-        // Determine content priorities based on interests and behavior
-        
-        // Get top interests
-        const topInterests = this.getTopInterests(behavior);
-        
-        // Map interests to content categories
-        const contentPriorities = {
-            primary: topInterests[0] || 'general',
-            secondary: topInterests.slice(1, 3),
-            tertiary: topInterests.slice(3)
-        };
-        
-        return contentPriorities;
-    }
-    
-    // Synchronization Methods
-    
-    async exportProfiles() {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Create export data
-            const exportData = {
-                version: '1.0',
-                timestamp: Date.now(),
-                profiles: this.profiles,
-                currentProfileId: this.currentProfile.id
-            };
-            
-            // Convert to JSON
-            return JSON.stringify(exportData);
-        } catch (error) {
-            console.error('Error exporting profiles:', error);
-            return null;
-        }
-    }
-    
-    async importProfiles(importData) {
-        if (!this.initialized) {
-            await this.waitForInitialization();
-        }
-        
-        try {
-            // Parse import data
-            const data = typeof importData === 'string' ? JSON.parse(importData) : importData;
-            
-            // Validate data
-            if (!data || !data.version || !data.profiles) {
-                throw new Error('Invalid import data format');
+            // Check if profile exists
+            if (!this.profiles.has(profileId)) {
+                console.error(`Profile ${profileId} not found`);
+                return false;
             }
             
-            // Import profiles
-            this.profiles = data.profiles;
-            
-            // Ensure default profile exists
-            if (!this.profiles[this.defaultProfile.id]) {
-                this.profiles[this.defaultProfile.id] = this.defaultProfile;
+            // Check if it's the only profile
+            if (this.profiles.size === 1) {
+                console.error('Cannot delete the only profile');
+                return false;
             }
             
-            // Set current profile
-            if (data.currentProfileId && this.profiles[data.currentProfileId]) {
-                this.currentProfile = this.profiles[data.currentProfileId];
-            } else {
-                this.currentProfile = this.profiles[this.defaultProfile.id];
+            // Check if it's the active profile
+            if (this.activeProfile && this.activeProfile.id === profileId) {
+                // Find another profile to switch to
+                for (const [id, profile] of this.profiles.entries()) {
+                    if (id !== profileId) {
+                        // Switch to this profile
+                        await this.switchProfile(id);
+                        break;
+                    }
+                }
             }
             
-            // Save to storage
+            // Delete profile
+            this.profiles.delete(profileId);
+            
+            // Save profiles
             await this.saveProfiles();
-            await this.saveCurrentProfile();
             
-            // Apply profile settings
-            this.applyProfileSettings();
-            
-            console.log('Profiles imported successfully');
-            
-            // Publish profiles imported event
-            if (window.eventSystem) {
-                window.eventSystem.publish('profiles-imported', { 
-                    timestamp: Date.now(),
-                    profileCount: Object.keys(this.profiles).length
-                });
-            }
+            // Publish profile deleted event
+            this.eventSystem.publish('user-profile-deleted', {
+                profileId
+            });
             
             return true;
         } catch (error) {
-            console.error('Error importing profiles:', error);
+            console.error('Error deleting profile:', error);
             return false;
         }
     }
     
-    async syncWithCloud(userId, authToken) {
-        // This would implement cloud synchronization
-        // For now, return a placeholder
-        console.log('Cloud synchronization not implemented');
-        return false;
-    }
-    
-    // Utility Methods
-    
-    deepMerge(target, source) {
-        // Deep merge two objects
-        for (const key in source) {
-            if (source[key] instanceof Object && key in target && target[key] instanceof Object) {
-                this.deepMerge(target[key], source[key]);
-            } else {
-                target[key] = source[key];
+    /**
+     * Update a user preference
+     * @param {string} category - Preference category
+     * @param {string} key - Preference key
+     * @param {*} value - Preference value
+     * @returns {Promise<boolean>} Whether the update was successful
+     */
+    async updatePreference(category, key, value) {
+        try {
+            // Check if active profile exists
+            if (!this.activeProfile) {
+                console.error('No active profile');
+                return false;
             }
+            
+            // Update preference
+            if (category === 'preferences' || category === 'accessibility' || 
+                category === 'conversationStyle' || category === 'privacySettings') {
+                
+                // Check if category exists
+                if (!this.activeProfile[category]) {
+                    this.activeProfile[category] = {};
+                }
+                
+                // Update value
+                this.activeProfile[category][key] = value;
+                
+                // Save profiles
+                await this.saveProfiles();
+                
+                // Apply setting
+                if (category === 'preferences') {
+                    if (key === 'theme') {
+                        this.eventSystem.publish('theme-change', { theme: value });
+                    } else if (key === 'voiceType') {
+                        this.eventSystem.publish('voice-type-change', { voiceType: value });
+                    } else if (key === 'visualizationQuality') {
+                        this.eventSystem.publish('quality-setting-change', { quality: value });
+                    } else if (key === 'audioEnabled') {
+                        this.eventSystem.publish('audio-mute-change', { muted: !value });
+                    }
+                } else if (category === 'accessibility') {
+                    this.eventSystem.publish('accessibility-settings-change', { 
+                        settings: this.activeProfile.accessibility 
+                    });
+                } else if (category === 'conversationStyle') {
+                    this.eventSystem.publish('conversation-style-change', { 
+                        style: this.activeProfile.conversationStyle 
+                    });
+                } else if (category === 'privacySettings') {
+                    this.eventSystem.publish('privacy-settings-change', { 
+                        settings: this.activeProfile.privacySettings 
+                    });
+                }
+                
+                // Publish preference updated event
+                this.eventSystem.publish('user-preference-updated', {
+                    category,
+                    key,
+                    value
+                });
+                
+                return true;
+            } else if (category === 'interests' || category === 'dislikedTopics') {
+                // Handle array preferences
+                if (Array.isArray(this.activeProfile[category])) {
+                    // Check if adding or removing
+                    if (value === true && !this.activeProfile[category].includes(key)) {
+                        // Add to array
+                        this.activeProfile[category].push(key);
+                    } else if (value === false && this.activeProfile[category].includes(key)) {
+                        // Remove from array
+                        this.activeProfile[category] = this.activeProfile[category].filter(item => item !== key);
+                    }
+                    
+                    // Save profiles
+                    await this.saveProfiles();
+                    
+                    // Publish preference updated event
+                    this.eventSystem.publish('user-preference-updated', {
+                        category,
+                        key,
+                        value
+                    });
+                    
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Error updating preference:', error);
+            return false;
         }
     }
     
-    async waitForInitialization() {
-        if (this.initialized) return;
+    /**
+     * Get the active user profile
+     * @returns {Object|null} Active user profile or null if none
+     */
+    getActiveProfile() {
+        return this.activeProfile;
+    }
+    
+    /**
+     * Get a specific user profile
+     * @param {string} profileId - ID of the profile to get
+     * @returns {Object|null} User profile or null if not found
+     */
+    getProfile(profileId) {
+        return this.profiles.get(profileId) || null;
+    }
+    
+    /**
+     * Get all user profiles
+     * @returns {Array} Array of user profiles
+     */
+    getAllProfiles() {
+        return Array.from(this.profiles.values());
+    }
+    
+    /**
+     * Record the start of a session
+     */
+    recordSessionStart() {
+        if (!this.activeProfile) return;
         
-        return new Promise(resolve => {
-            const checkInterval = setInterval(() => {
-                if (this.initialized) {
-                    clearInterval(checkInterval);
-                    resolve();
+        // Record session start time
+        this.sessionStartTime = Date.now();
+        
+        // Increment total sessions
+        this.activeProfile.interactionHistory.totalSessions++;
+        
+        // Save profiles
+        this.saveProfiles();
+    }
+    
+    /**
+     * Record the end of a session
+     * @param {number} duration - Session duration in milliseconds
+     */
+    async recordSessionEnd(duration) {
+        if (!this.activeProfile) return;
+        
+        try {
+            // Calculate session duration if not provided
+            if (!duration && this.sessionStartTime) {
+                duration = Date.now() - this.sessionStartTime;
+            }
+            
+            if (duration) {
+                // Convert to minutes
+                const durationMinutes = duration / 60000;
+                
+                // Update session history
+                const history = this.activeProfile.interactionHistory;
+                
+                // Add to session lengths
+                history.sessionLengths.push(durationMinutes);
+                
+                // Keep only the last 20 sessions
+                if (history.sessionLengths.length > 20) {
+                    history.sessionLengths.shift();
                 }
-            }, 100);
-        });
+                
+                // Calculate average session length
+                const totalLength = history.sessionLengths.reduce((sum, length) => sum + length, 0);
+                history.averageSessionLength = totalLength / history.sessionLengths.length;
+                
+                // Update last session timestamp
+                history.lastSessionTimestamp = Date.now();
+                
+                // Reset session start time
+                this.sessionStartTime = null;
+                
+                // Save profiles
+                await this.saveProfiles();
+            }
+        } catch (error) {
+            console.error('Error recording session end:', error);
+        }
     }
     
-    // Public API
-    
-    async getTheme() {
-        return this.getPreference('preferences.theme', 'default');
+    /**
+     * Process a user interaction
+     * @param {Object} data - Interaction data
+     */
+    async processInteraction(data) {
+        if (!this.activeProfile) return;
+        
+        try {
+            // Increment total interactions
+            this.activeProfile.interactionHistory.totalInteractions++;
+            
+            // Extract topics from interaction
+            if (data.message) {
+                const topics = await this.extractTopics(data.message);
+                
+                // Update interest model based on topics
+                for (const topic of topics) {
+                    // Check if topic is in disliked topics
+                    if (this.activeProfile.dislikedTopics.includes(topic)) {
+                        continue;
+                    }
+                    
+                    // Update interest model
+                    this.updateInterestModel(topic, data.sentiment || 0);
+                }
+            }
+            
+            // Process interaction for preference learning
+            if (data.context) {
+                this.processInteractionForLearning(data);
+            }
+            
+            // Save profiles periodically (every 10 interactions)
+            if (this.activeProfile.interactionHistory.totalInteractions % 10 === 0) {
+                await this.saveProfiles();
+            }
+        } catch (error) {
+            console.error('Error processing interaction:', error);
+        }
     }
     
-    async setTheme(theme) {
-        return this.setPreference('preferences.theme', theme);
+    /**
+     * Extract topics from text
+     * @param {string} text - Text to extract topics from
+     * @returns {Promise<string[]>} Array of topics
+     */
+    async extractTopics(text) {
+        try {
+            // Use memory system's topic extraction if available
+            if (this.longTermMemorySystem && typeof this.longTermMemorySystem.extractTopics === 'function') {
+                return await this.longTermMemorySystem.extractTopics(text);
+            }
+            
+            // Simple keyword-based topic extraction
+            const topicKeywords = {
+                'weather': ['weather', 'rain', 'sunny', 'temperature', 'forecast', 'climate'],
+                'health': ['health', 'doctor', 'sick', 'illness', 'disease', 'medicine', 'exercise', 'diet'],
+                'technology': ['technology', 'computer', 'software', 'hardware', 'app', 'device', 'internet', 'digital'],
+                'entertainment': ['movie', 'film', 'show', 'music', 'song', 'concert', 'artist', 'actor', 'actress', 'entertainment'],
+                'food': ['food', 'eat', 'restaurant', 'recipe', 'cook', 'meal', 'dinner', 'lunch', 'breakfast'],
+                'travel': ['travel', 'trip', 'vacation', 'journey', 'flight', 'hotel', 'destination', 'tourism'],
+                'work': ['work', 'job', 'career', 'office', 'business', 'professional', 'employment'],
+                'education': ['education', 'school', 'college', 'university', 'learn', 'study', 'student', 'teacher', 'professor'],
+                'family': ['family', 'parent', 'child', 'mother', 'father', 'son', 'daughter', 'brother', 'sister'],
+                'emotions': ['happy', 'sad', 'angry', 'excited', 'nervous', 'anxious', 'calm', 'stressed', 'feeling', 'emotion']
+            };
+            
+            const lowerText = text.toLowerCase();
+            const detectedTopics = [];
+            
+            for (const [topic, keywords] of Object.entries(topicKeywords)) {
+                for (const keyword of keywords) {
+                    if (lowerText.includes(keyword)) {
+                        detectedTopics.push(topic);
+                        break;
+                    }
+                }
+            }
+            
+            // If no topics were detected, use 'general'
+            if (detectedTopics.length === 0) {
+                detectedTopics.push('general');
+            }
+            
+            return detectedTopics;
+        } catch (error) {
+            console.error('Error extracting topics:', error);
+            return ['general'];
+        }
     }
     
-    async getAccessibilitySettings() {
-        return this.getPreference('preferences.accessibility', {});
+    /**
+     * Update interest model based on topic
+     * @param {string} topic - Topic to update
+     * @param {number} sentiment - Sentiment score (-1 to 1)
+     */
+    updateInterestModel(topic, sentiment = 0) {
+        if (!this.activeProfile) return;
+        
+        try {
+            // Initialize learned preferences if needed
+            if (!this.activeProfile.learnedPreferences.interests) {
+                this.activeProfile.learnedPreferences.interests = {};
+            }
+            
+            const interests = this.activeProfile.learnedPreferences.interests;
+            
+            // Initialize topic if needed
+            if (!interests[topic]) {
+                interests[topic] = {
+                    score: 0,
+                    count: 0,
+                    lastUpdated: Date.now()
+                };
+            }
+            
+            // Update topic score
+            const topicData = interests[topic];
+            
+            // Calculate update weight (more recent interactions have more weight)
+            const timeSinceLastUpdate = Date.now() - topicData.lastUpdated;
+            const daysSinceLastUpdate = timeSinceLastUpdate / (1000 * 60 * 60 * 24);
+            const recencyWeight = Math.max(0.5, 1 - (daysSinceLastUpdate / 30)); // Decay over 30 days
+            
+            // Calculate learning rate
+            const learningRate = this.activeProfile.learningPreferences.adaptationRate * recencyWeight;
+            
+            // Update score with sentiment influence
+            const sentimentInfluence = sentiment * 0.3; // Scale sentiment influence
+            const update = learningRate * (1 + sentimentInfluence);
+            
+            // Apply update
+            topicData.score = (topicData.score * topicData.count + update) / (topicData.count + 1);
+            topicData.count++;
+            topicData.lastUpdated = Date.now();
+            
+            // Check if topic should be added to interests
+            if (topicData.score > this.activeProfile.learningPreferences.confidenceThreshold && 
+                topicData.count >= 3 && 
+                !this.activeProfile.interests.includes(topic)) {
+                
+                // Add to interests
+                this.activeProfile.interests.push(topic);
+                
+                // Publish interest added event
+                this.eventSystem.publish('user-interest-detected', {
+                    topic,
+                    score: topicData.score,
+                    count: topicData.count
+                });
+            }
+        } catch (error) {
+            console.error('Error updating interest model:', error);
+        }
     }
     
-    async setAccessibilitySetting(setting, value) {
-        return this.setPreference(`preferences.accessibility.${setting}`, value);
+    /**
+     * Initialize preference learning models
+     */
+    initializePreferenceModels() {
+        // Initialize models for different preference categories
+        this.preferenceModels = {
+            responseLength: this.createCategoricalModel(['short', 'medium', 'long']),
+            formality: this.createCategoricalModel(['casual', 'neutral', 'formal']),
+            humor: this.createCategoricalModel(['minimal', 'moderate', 'frequent']),
+            detailLevel: this.createCategoricalModel(['concise', 'balanced', 'detailed']),
+            technicalLevel: this.createCategoricalModel(['simple', 'moderate', 'technical']),
+            emotionalTone: this.createCategoricalModel(['neutral', 'empathetic', 'enthusiastic'])
+        };
     }
     
-    async getVolume() {
-        return this.getPreference('preferences.volume', 0.8);
+    /**
+     * Create a categorical preference model
+     * @param {string[]} categories - Possible categories
+     * @returns {Object} Categorical model
+     */
+    createCategoricalModel(categories) {
+        const model = {
+            categories,
+            counts: {},
+            total: 0,
+            lastUpdated: Date.now()
+        };
+        
+        // Initialize counts
+        for (const category of categories) {
+            model.counts[category] = 0;
+        }
+        
+        return model;
     }
     
-    async setVolume(volume) {
-        return this.setPreference('preferences.volume', volume);
+    /**
+     * Process interaction for preference learning
+     * @param {Object} data - Interaction data
+     */
+    processInteractionForLearning(data) {
+        if (!this.activeProfile || !data.context) return;
+        
+        try {
+            // Extract context features
+            const context = data.context;
+            
+            // Check for explicit feedback
+            if (context.feedback) {
+                const feedback = context.feedback;
+                
+                // Process feedback for different aspects
+                for (const aspect in feedback) {
+                    if (this.preferenceModels[aspect]) {
+                        this.updatePreferenceModel(aspect, feedback[aspect], 0.8); // High weight for explicit feedback
+                    }
+                }
+            }
+            
+            // Check for implicit feedback
+            if (context.userResponse) {
+                const response = context.userResponse;
+                
+                // Check engagement signals
+                if (response.engagementTime) {
+                    // Longer engagement time suggests preference for current style
+                    const engagementScore = Math.min(1, response.engagementTime / 60000); // Cap at 1 minute
+                    
+                    // Update models based on current settings
+                    if (context.currentSettings) {
+                        for (const aspect in context.currentSettings) {
+                            if (this.preferenceModels[aspect]) {
+                                this.updatePreferenceModel(aspect, context.currentSettings[aspect], engagementScore * 0.3);
+                            }
+                        }
+                    }
+                }
+                
+                // Check sentiment
+                if (response.sentiment) {
+                    const sentiment = response.sentiment;
+                    const sentimentScore = (sentiment + 1) / 2; // Convert -1:1 to 0:1
+                    
+                    // Update models based on current settings with sentiment weight
+                    if (context.currentSettings) {
+                        for (const aspect in context.currentSettings) {
+                            if (this.preferenceModels[aspect]) {
+                                this.updatePreferenceModel(aspect, context.currentSettings[aspect], sentimentScore * 0.2);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Apply learned preferences periodically
+            this.applyLearnedPreferences();
+        } catch (error) {
+            console.error('Error processing interaction for learning:', error);
+        }
     }
     
-    async getSpeechRate() {
-        return this.getPreference('preferences.speechRate', 1.0);
+    /**
+     * Update a preference model
+     * @param {string} aspect - Preference aspect
+     * @param {string} value - Preference value
+     * @param {number} weight - Update weight (0-1)
+     */
+    updatePreferenceModel(aspect, value, weight = 0.5) {
+        if (!this.preferenceModels[aspect]) return;
+        
+        const model = this.preferenceModels[aspect];
+        
+        // Check if value is valid
+        if (!model.categories.includes(value)) return;
+        
+        // Update counts
+        model.counts[value] += weight;
+        model.total += weight;
+        model.lastUpdated = Date.now();
+        
+        // Initialize learned preferences if needed
+        if (!this.activeProfile.learnedPreferences[aspect]) {
+            this.activeProfile.learnedPreferences[aspect] = {
+                value: null,
+                confidence: 0,
+                lastUpdated: Date.now()
+            };
+        }
+        
+        // Calculate probabilities
+        const probs = {};
+        let maxProb = 0;
+        let maxCategory = null;
+        
+        for (const category of model.categories) {
+            probs[category] = model.counts[category] / model.total;
+            
+            if (probs[category] > maxProb) {
+                maxProb = probs[category];
+                maxCategory = category;
+            }
+        }
+        
+        // Update learned preference
+        const learnedPref = this.activeProfile.learnedPreferences[aspect];
+        learnedPref.value = maxCategory;
+        learnedPref.confidence = maxProb;
+        learnedPref.lastUpdated = Date.now();
     }
     
-    async setSpeechRate(rate) {
-        return this.setPreference('preferences.speechRate', rate);
+    /**
+     * Apply learned preferences to active profile
+     */
+    applyLearnedPreferences() {
+        if (!this.activeProfile) return;
+        
+        try {
+            // Check if we have enough data
+            const threshold = this.activeProfile.learningPreferences.confidenceThreshold;
+            
+            // Apply learned preferences to conversation style
+            const style = this.activeProfile.conversationStyle;
+            
+            // Check each aspect
+            for (const aspect in this.preferenceModels) {
+                if (this.activeProfile.learnedPreferences[aspect]) {
+                    const learned = this.activeProfile.learnedPreferences[aspect];
+                    
+                    // Apply if confidence is high enough
+                    if (learned.confidence >= threshold) {
+                        // Map aspect to the appropriate category
+                        if (aspect === 'responseLength' || aspect === 'formality' || 
+                            aspect === 'humor') {
+                            // These go in preferences
+                            if (this.activeProfile.preferences[aspect] !== learned.value) {
+                                this.activeProfile.preferences[aspect] = learned.value;
+                                
+                                // Publish preference updated event
+                                this.eventSystem.publish('learned-preference-applied', {
+                                    category: 'preferences',
+                                    key: aspect,
+                                    value: learned.value,
+                                    confidence: learned.confidence
+                                });
+                            }
+                        } else if (aspect === 'detailLevel' || aspect === 'technicalLevel' || 
+                                  aspect === 'emotionalTone') {
+                            // These go in conversationStyle
+                            if (style[aspect] !== learned.value) {
+                                style[aspect] = learned.value;
+                                
+                                // Publish preference updated event
+                                this.eventSystem.publish('learned-preference-applied', {
+                                    category: 'conversationStyle',
+                                    key: aspect,
+                                    value: learned.value,
+                                    confidence: learned.confidence
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Apply conversation style changes
+            this.eventSystem.publish('conversation-style-change', {
+                style: this.activeProfile.conversationStyle
+            });
+        } catch (error) {
+            console.error('Error applying learned preferences:', error);
+        }
     }
     
-    async getConversationStyle() {
-        return this.getPreference('conversationStyle', 'balanced');
+    /**
+     * Learn a specific preference
+     * @param {string} category - Preference category
+     * @param {string} key - Preference key
+     * @param {*} value - Preference value
+     * @param {Object} context - Learning context
+     */
+    learnPreference(category, key, value, context = {}) {
+        if (!this.activeProfile) return;
+        
+        try {
+            // Calculate weight based on context
+            let weight = 0.5; // Default weight
+            
+            if (context.explicit) {
+                // Explicit learning has higher weight
+                weight = 0.8;
+            } else if (context.sentiment) {
+                // Adjust weight based on sentiment
+                weight = 0.3 + (context.sentiment * 0.2);
+            }
+            
+            // Check if this is a categorical preference with a model
+            if (this.preferenceModels[key]) {
+                this.updatePreferenceModel(key, value, weight);
+            } else {
+                // Direct learning for other preferences
+                if (!this.activeProfile.learnedPreferences[category]) {
+                    this.activeProfile.learnedPreferences[category] = {};
+                }
+                
+                if (!this.activeProfile.learnedPreferences[category][key]) {
+                    this.activeProfile.learnedPreferences[category][key] = {
+                        value: value,
+                        confidence: weight,
+                        lastUpdated: Date.now()
+                    };
+                } else {
+                    // Update existing preference
+                    const pref = this.activeProfile.learnedPreferences[category][key];
+                    
+                    // If value is the same, increase confidence
+                    if (pref.value === value) {
+                        pref.confidence = Math.min(1, pref.confidence + (weight * 0.2));
+                    } else {
+                        // If value is different, adjust based on weights
+                        const oldWeight = pref.confidence;
+                        const newWeight = weight;
+                        const totalWeight = oldWeight + newWeight;
+                        
+                        if (newWeight > oldWeight) {
+                            // New value wins
+                            pref.value = value;
+                            pref.confidence = newWeight / totalWeight;
+                        } else {
+                            // Old value retained but confidence reduced
+                            pref.confidence = oldWeight / totalWeight;
+                        }
+                    }
+                    
+                    pref.lastUpdated = Date.now();
+                }
+                
+                // Apply if confidence is high enough
+                if (this.activeProfile.learnedPreferences[category][key].confidence >= 
+                    this.activeProfile.learningPreferences.confidenceThreshold) {
+                    
+                    // Apply learned preference
+                    this.updatePreference(category, key, value);
+                    
+                    // Publish learned preference applied event
+                    this.eventSystem.publish('learned-preference-applied', {
+                        category,
+                        key,
+                        value,
+                        confidence: this.activeProfile.learnedPreferences[category][key].confidence
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error learning preference:', error);
+        }
     }
     
-    async setConversationStyle(style) {
-        return this.setPreference('conversationStyle', style);
+    /**
+     * Get user interests
+     * @param {number} limit - Maximum number of interests to return
+     * @returns {string[]} Array of interests
+     */
+    getUserInterests(limit = 0) {
+        if (!this.activeProfile) return [];
+        
+        // Get explicit interests
+        const explicitInterests = [...this.activeProfile.interests];
+        
+        // Get learned interests
+        const learnedInterests = [];
+        
+        if (this.activeProfile.learnedPreferences.interests) {
+            // Convert to array of [topic, score] pairs
+            const interestPairs = Object.entries(this.activeProfile.learnedPreferences.interests)
+                .map(([topic, data]) => [topic, data.score])
+                .filter(([topic, score]) => 
+                    score >= this.activeProfile.learningPreferences.confidenceThreshold && 
+                    !explicitInterests.includes(topic) &&
+                    !this.activeProfile.dislikedTopics.includes(topic)
+                )
+                .sort((a, b) => b[1] - a[1]);
+            
+            // Extract topics
+            learnedInterests.push(...interestPairs.map(pair => pair[0]));
+        }
+        
+        // Combine interests
+        const allInterests = [...explicitInterests, ...learnedInterests];
+        
+        // Limit if specified
+        if (limit > 0 && allInterests.length > limit) {
+            return allInterests.slice(0, limit);
+        }
+        
+        return allInterests;
     }
     
-    async startSession() {
-        return this.trackBehavior('session_start');
+    /**
+     * Get disliked topics
+     * @returns {string[]} Array of disliked topics
+     */
+    getDislikedTopics() {
+        if (!this.activeProfile) return [];
+        
+        return [...this.activeProfile.dislikedTopics];
     }
     
-    async endSession() {
-        return this.trackBehavior('session_end');
+    /**
+     * Get user preference
+     * @param {string} category - Preference category
+     * @param {string} key - Preference key
+     * @returns {*} Preference value or null if not found
+     */
+    getPreference(category, key) {
+        if (!this.activeProfile) return null;
+        
+        if (this.activeProfile[category] && this.activeProfile[category][key] !== undefined) {
+            return this.activeProfile[category][key];
+        }
+        
+        return null;
     }
     
-    async trackTopic(topic) {
-        return this.trackBehavior('topic_discussed', { topic });
+    /**
+     * Get all preferences in a category
+     * @param {string} category - Preference category
+     * @returns {Object|null} Preferences object or null if category not found
+     */
+    getPreferenceCategory(category) {
+        if (!this.activeProfile) return null;
+        
+        if (this.activeProfile[category]) {
+            return { ...this.activeProfile[category] };
+        }
+        
+        return null;
     }
     
-    async trackResponsePreference(type, value) {
-        return this.trackBehavior('response_preference', { type, value });
+    /**
+     * Export active profile
+     * @returns {string} JSON string of profile data
+     */
+    exportActiveProfile() {
+        if (!this.activeProfile) return null;
+        
+        try {
+            // Create export object
+            const exportData = {
+                profile: { ...this.activeProfile },
+                exportTime: Date.now(),
+                version: '1.0'
+            };
+            
+            // Convert to JSON
+            const jsonData = JSON.stringify(exportData, null, 2);
+            
+            // Publish export data
+            this.eventSystem.publish('user-profile-exported', {
+                profileId: this.activeProfile.id,
+                name: this.activeProfile.name,
+                data: jsonData
+            });
+            
+            return jsonData;
+        } catch (error) {
+            console.error('Error exporting profile:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Import a user profile
+     * @param {string|Object} profileData - Profile data to import
+     * @returns {Promise<Object|null>} Imported profile or null if import failed
+     */
+    async importProfile(profileData) {
+        try {
+            // Parse data if it's a string
+            const data = typeof profileData === 'string' ? JSON.parse(profileData) : profileData;
+            
+            // Validate data
+            if (!data.profile || !data.profile.id) {
+                throw new Error('Invalid profile data');
+            }
+            
+            // Check if profile already exists
+            const existingProfile = this.profiles.get(data.profile.id);
+            
+            if (existingProfile) {
+                // Generate a new ID for the imported profile
+                data.profile.id = this.generateProfileId();
+                data.profile.name += ' (Imported)';
+            }
+            
+            // Add profile
+            this.profiles.set(data.profile.id, data.profile);
+            
+            // Save profiles
+            await this.saveProfiles();
+            
+            // Publish profile imported event
+            this.eventSystem.publish('user-profile-imported', {
+                profileId: data.profile.id,
+                name: data.profile.name
+            });
+            
+            return data.profile;
+        } catch (error) {
+            console.error('Error importing profile:', error);
+            
+            // Publish import error event
+            this.eventSystem.publish('user-profile-import-error', {
+                error: error.message
+            });
+            
+            return null;
+        }
+    }
+    
+    /**
+     * Reset user profile to defaults
+     * @param {string} profileId - ID of the profile to reset
+     * @returns {Promise<boolean>} Whether the reset was successful
+     */
+    async resetProfile(profileId) {
+        try {
+            // Check if profile exists
+            if (!this.profiles.has(profileId)) {
+                console.error(`Profile ${profileId} not found`);
+                return false;
+            }
+            
+            // Get profile
+            const profile = this.profiles.get(profileId);
+            
+            // Create new profile with defaults but keep ID and name
+            const defaultProfile = { ...this.defaultProfileTemplate };
+            defaultProfile.id = profile.id;
+            defaultProfile.name = profile.name;
+            defaultProfile.created = profile.created;
+            defaultProfile.lastAccessed = Date.now();
+            
+            // Replace profile
+            this.profiles.set(profileId, defaultProfile);
+            
+            // Update active profile if needed
+            if (this.activeProfile && this.activeProfile.id === profileId) {
+                this.activeProfile = defaultProfile;
+                
+                // Apply default settings
+                this.applyProfileSettings(defaultProfile);
+            }
+            
+            // Save profiles
+            await this.saveProfiles();
+            
+            // Publish profile reset event
+            this.eventSystem.publish('user-profile-reset', {
+                profileId,
+                name: defaultProfile.name
+            });
+            
+            return true;
+        } catch (error) {
+            console.error('Error resetting profile:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get personalized response parameters
+     * @returns {Object} Personalized parameters for response generation
+     */
+    getPersonalizedResponseParams() {
+        if (!this.activeProfile) {
+            return {
+                responseLength: 'medium',
+                formality: 'casual',
+                humor: 'moderate',
+                detailLevel: 'balanced',
+                technicalLevel: 'adaptive',
+                emotionalTone: 'balanced',
+                interests: [],
+                dislikedTopics: []
+            };
+        }
+        
+        // Get preferences
+        const prefs = this.activeProfile.preferences;
+        const style = this.activeProfile.conversationStyle;
+        
+        // Get interests and disliked topics
+        const interests = this.getUserInterests();
+        const dislikedTopics = this.getDislikedTopics();
+        
+        return {
+            responseLength: prefs.responseLength || 'medium',
+            formality: prefs.formality || 'casual',
+            humor: prefs.humor || 'moderate',
+            detailLevel: style.detailLevel || 'balanced',
+            technicalLevel: style.technicalLevel || 'adaptive',
+            emotionalTone: style.emotionalTone || 'balanced',
+            interests,
+            dislikedTopics
+        };
+    }
+    
+    /**
+     * Get user session statistics
+     * @returns {Object} Session statistics
+     */
+    getSessionStats() {
+        if (!this.activeProfile) {
+            return {
+                totalSessions: 0,
+                totalInteractions: 0,
+                averageSessionLength: 0,
+                lastSessionTimestamp: null
+            };
+        }
+        
+        const history = this.activeProfile.interactionHistory;
+        
+        return {
+            totalSessions: history.totalSessions,
+            totalInteractions: history.totalInteractions,
+            averageSessionLength: history.averageSessionLength,
+            lastSessionTimestamp: history.lastSessionTimestamp
+        };
     }
 }
 
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = AdvancedUserProfileSystem;
-}
+// Create and export singleton instance
+const advancedUserProfileSystem = new AdvancedUserProfileSystem();
+export default advancedUserProfileSystem;

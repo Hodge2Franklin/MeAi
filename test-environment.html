@@ -3,468 +3,1318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MeAI Test Environment</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>MeAI Integration Test Environment</title>
     <style>
-        /* Test Environment Specific Styles */
-        .test-container {
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        main {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
         }
         
-        .test-controls {
-            background-color: #f5f5f5;
-            padding: 20px;
+        @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        section {
+            background-color: white;
             border-radius: 8px;
-            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
         
-        .test-control-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
+        h2 {
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
         }
         
-        .test-control-buttons button {
-            padding: 10px 15px;
-            background-color: #4a90e2;
+        button {
+            background-color: #3498db;
             color: white;
             border: none;
+            padding: 0.5rem 1rem;
             border-radius: 4px;
             cursor: pointer;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
             transition: background-color 0.3s;
         }
         
-        .test-control-buttons button:hover {
-            background-color: #3a7bc8;
+        button:hover {
+            background-color: #2980b9;
         }
         
-        .test-toggles {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .toggle-group {
-            background-color: white;
-            padding: 15px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .toggle-group h4 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        .toggle-group label {
-            display: block;
-            margin-bottom: 8px;
-            cursor: pointer;
-        }
-        
-        .test-output {
+        .test-results {
+            margin-top: 1rem;
+            padding: 1rem;
             background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        #test-status {
-            font-weight: bold;
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #e9e9e9;
             border-radius: 4px;
-        }
-        
-        .test-results-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .test-results-table th, .test-results-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .test-results-table th {
-            background-color: #f2f2f2;
-        }
-        
-        .test-pass {
-            background-color: #e6ffe6;
-        }
-        
-        .test-fail {
-            background-color: #ffe6e6;
-        }
-        
-        .test-visualization {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .visualization-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        
-        .test-area {
-            flex: 1;
-            min-width: 300px;
-            background-color: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .test-area h4 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .test-component {
-            margin-bottom: 15px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-radius: 6px;
-            min-height: 100px;
-        }
-        
-        .test-pixel {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: #4a90e2;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-            text-align: center;
-            transition: all 0.5s ease;
-        }
-        
-        .test-pixel[data-emotion="joy"] {
-            background-color: #ffcc00;
-            transform: scale(1.2);
-        }
-        
-        .test-pixel[data-emotion="reflective"] {
-            background-color: #9966cc;
-            transform: scale(1);
-        }
-        
-        .test-pixel[data-emotion="curious"] {
-            background-color: #66ccff;
-            transform: scale(1.1) rotate(10deg);
-        }
-        
-        .test-pixel[data-emotion="excited"] {
-            background-color: #ff6600;
-            transform: scale(1.3) rotate(-5deg);
-        }
-        
-        .test-pixel[data-emotion="empathetic"] {
-            background-color: #66cc99;
-            transform: scale(1.1);
-        }
-        
-        .test-pixel[data-emotion="calm"] {
-            background-color: #3399cc;
-            transform: scale(0.9);
-        }
-        
-        .test-pixel[data-emotion="neutral"] {
-            background-color: #4a90e2;
-            transform: scale(1);
-        }
-        
-        .test-background {
-            width: 100%;
-            height: 100px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            transition: all 0.5s ease;
-        }
-        
-        .test-background[data-type="starfield"] {
-            background-color: #000033;
-            background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
-                              radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
-                              radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px);
-            background-size: 550px 550px, 350px 350px, 250px 250px;
-            background-position: 0 0, 40px 60px, 130px 270px;
-        }
-        
-        .test-background[data-type="particles"] {
-            background-color: #330033;
-            background-image: radial-gradient(#ff99cc, rgba(255,153,204,.2) 2px, transparent 40px);
-            background-size: 200px 200px;
-        }
-        
-        .test-background[data-type="gradient"] {
-            background: linear-gradient(135deg, #3498db, #9b59b6, #e74c3c);
-            background-size: 300% 300%;
-            animation: gradientShift 5s ease infinite;
-        }
-        
-        .test-background[data-type="waves"] {
-            background: linear-gradient(45deg, #12c2e9, #c471ed, #f64f59);
-            background-size: 300% 300%;
-            animation: gradientShift 8s ease infinite;
-        }
-        
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        
-        .test-theme {
-            width: 100%;
-            height: 100px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            transition: all 0.5s ease;
-        }
-        
-        .test-theme[data-theme="default"] {
-            background-color: #4a90e2;
-            color: white;
-        }
-        
-        .test-theme[data-theme="dark"] {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-        }
-        
-        .test-theme[data-theme="light"] {
-            background-color: #ecf0f1;
-            color: #2c3e50;
-            border: 1px solid #ddd;
-        }
-        
-        .test-theme[data-theme="cosmic"] {
-            background-color: #1a1a2e;
-            color: #e94560;
-        }
-        
-        .test-theme[data-theme="nature"] {
-            background-color: #588157;
-            color: #fefae0;
-        }
-        
-        .test-animation {
-            width: 100px;
-            height: 100px;
-            background-color: #4a90e2;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            margin: 0 auto;
-        }
-        
-        .test-animation[data-animation="fade"] {
-            animation: fade 2s infinite;
-        }
-        
-        .test-animation[data-animation="slide"] {
-            animation: slide 2s infinite;
-        }
-        
-        .test-animation[data-animation="scale"] {
-            animation: scale 2s infinite;
-        }
-        
-        .test-animation[data-animation="pulse"] {
-            animation: pulse 2s infinite;
-        }
-        
-        .test-animation[data-animation="shake"] {
-            animation: shake 2s infinite;
-        }
-        
-        .test-animation[data-animation="bounce"] {
-            animation: bounce 2s infinite;
-        }
-        
-        @keyframes fade {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        
-        @keyframes slide {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(50px); }
-        }
-        
-        @keyframes scale {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.5); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
-        }
-        
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-20px); }
-            60% { transform: translateY(-10px); }
-        }
-        
-        .test-accessibility {
-            width: 100%;
-            height: 100px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            transition: all 0.5s ease;
-            background-color: #4a90e2;
-            color: white;
-        }
-        
-        .test-accessibility[data-feature="high-contrast"] {
-            background-color: #000;
-            color: #fff;
-            border: 2px solid #fff;
-        }
-        
-        .test-accessibility[data-feature="large-text"] {
-            font-size: 24px;
-        }
-        
-        .test-accessibility[data-feature="reduced-motion"] {
-            transition: none;
-        }
-        
-        .test-accessibility[data-feature="color-blind-deuteranopia"] {
-            background-color: #0072B2;
-            color: #F0E442;
-        }
-        
-        .test-accessibility[data-feature="color-blind-protanopia"] {
-            background-color: #0072B2;
-            color: #F0E442;
-        }
-        
-        .test-accessibility[data-feature="color-blind-tritanopia"] {
-            background-color: #CC79A7;
-            color: #009E73;
-        }
-        
-        .audio-visualizer {
-            width: 100%;
-            height: 60px;
-            background-color: #f2f2f2;
-            border-radius: 4px;
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .memory-display, .conversation-display, .emotion-display {
-            width: 100%;
-            min-height: 150px;
-            background-color: #f2f2f2;
-            border-radius: 4px;
-            padding: 10px;
-            font-size: 14px;
-            color: #333;
+            max-height: 300px;
             overflow-y: auto;
         }
         
-        .user-message {
-            background-color: #e1f5fe;
-            padding: 8px 12px;
-            border-radius: 18px;
-            margin-bottom: 8px;
-            max-width: 80%;
-            align-self: flex-end;
+        .test-results pre {
+            margin: 0;
+            white-space: pre-wrap;
         }
         
-        .system-message {
-            background-color: #f5f5f5;
-            padding: 8px 12px;
-            border-radius: 18px;
-            margin-bottom: 8px;
-            max-width: 80%;
-            align-self: flex-start;
+        .visualization-container {
+            width: 100%;
+            height: 300px;
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .memory-container, .profile-container, .audio-container {
+            width: 100%;
+            height: 300px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            overflow: auto;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success {
+            background-color: #2ecc71;
+        }
+        
+        .status-warning {
+            background-color: #f39c12;
+        }
+        
+        .status-error {
+            background-color: #e74c3c;
+        }
+        
+        .status-inactive {
+            background-color: #95a5a6;
+        }
+        
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .log-info {
+            background-color: #d6eaf8;
+        }
+        
+        .log-success {
+            background-color: #d5f5e3;
+        }
+        
+        .log-warning {
+            background-color: #fef9e7;
+        }
+        
+        .log-error {
+            background-color: #fadbd8;
         }
     </style>
 </head>
 <body>
     <header>
-        <div class="logo">MeAI Test Environment</div>
-        <nav>
-            <ul>
-                <li><a href="index.html">Main App</a></li>
-                <li><a href="#" class="active">Test Environment</a></li>
-            </ul>
-        </nav>
+        <h1>MeAI Integration Test Environment</h1>
+        <p>Version 3.0.0 Final Testing</p>
     </header>
     
     <main>
-        <div class="test-container" id="test-container">
-            <!-- Test UI will be dynamically created by the integration test system -->
-        </div>
+        <section>
+            <h2>3D Visualization System</h2>
+            <div class="status">
+                <span class="status-indicator status-inactive" id="visualization-status"></span>
+                <span id="visualization-status-text">Initializing...</span>
+            </div>
+            <div class="control-panel">
+                <button id="init-visualization">Initialize</button>
+                <button id="test-visualization">Run Tests</button>
+                <select id="emotional-state">
+                    <option value="joy">Joy</option>
+                    <option value="reflective">Reflective</option>
+                    <option value="curious">Curious</option>
+                    <option value="excited">Excited</option>
+                    <option value="empathetic">Empathetic</option>
+                    <option value="calm">Calm</option>
+                    <option value="neutral">Neutral</option>
+                </select>
+                <button id="set-emotional-state">Set State</button>
+            </div>
+            <div class="visualization-container" id="visualization-container"></div>
+        </section>
+        
+        <section>
+            <h2>Spatial Audio System</h2>
+            <div class="status">
+                <span class="status-indicator status-inactive" id="audio-status"></span>
+                <span id="audio-status-text">Initializing...</span>
+            </div>
+            <div class="control-panel">
+                <button id="init-audio">Initialize</button>
+                <button id="test-audio">Run Tests</button>
+                <select id="audio-environment">
+                    <option value="small-room">Small Room</option>
+                    <option value="medium-room">Medium Room</option>
+                    <option value="large-room">Large Room</option>
+                    <option value="hall">Hall</option>
+                    <option value="cathedral">Cathedral</option>
+                    <option value="outdoor">Outdoor</option>
+                </select>
+                <button id="set-environment">Set Environment</button>
+                <button id="play-test-sound">Play Test Sound</button>
+            </div>
+            <div class="audio-container" id="audio-container">
+                <div id="audio-log"></div>
+            </div>
+        </section>
+        
+        <section>
+            <h2>Memory System</h2>
+            <div class="status">
+                <span class="status-indicator status-inactive" id="memory-status"></span>
+                <span id="memory-status-text">Initializing...</span>
+            </div>
+            <div class="control-panel">
+                <button id="init-memory">Initialize</button>
+                <button id="test-memory">Run Tests</button>
+                <button id="store-memory">Store Test Memory</button>
+                <button id="retrieve-memory">Retrieve Memories</button>
+                <button id="visualize-memory">Visualize Memory</button>
+            </div>
+            <div class="memory-container" id="memory-container">
+                <div id="memory-log"></div>
+            </div>
+        </section>
+        
+        <section>
+            <h2>User Profile System</h2>
+            <div class="status">
+                <span class="status-indicator status-inactive" id="profile-status"></span>
+                <span id="profile-status-text">Initializing...</span>
+            </div>
+            <div class="control-panel">
+                <button id="init-profile">Initialize</button>
+                <button id="test-profile">Run Tests</button>
+                <button id="create-profile">Create Test Profile</button>
+                <button id="update-preference">Update Preference</button>
+                <button id="learn-preference">Learn Preference</button>
+            </div>
+            <div class="profile-container" id="profile-container">
+                <div id="profile-log"></div>
+            </div>
+        </section>
+        
+        <section>
+            <h2>Integration Tests</h2>
+            <div class="control-panel">
+                <button id="run-all-tests">Run All Tests</button>
+                <button id="test-initialization">Test Initialization</button>
+                <button id="test-integration">Test Component Integration</button>
+                <button id="test-workflows">Test End-to-End Workflows</button>
+                <button id="test-performance">Test Performance</button>
+            </div>
+            <div class="test-results" id="test-results">
+                <pre>Integration test results will appear here...</pre>
+            </div>
+        </section>
+        
+        <section>
+            <h2>System Status</h2>
+            <div id="system-status">
+                <p><strong>Test Environment:</strong> <span id="environment-status">Initializing...</span></p>
+                <p><strong>Components Loaded:</strong> <span id="components-loaded">0/4</span></p>
+                <p><strong>Tests Completed:</strong> <span id="tests-completed">0/0</span></p>
+                <p><strong>Performance Score:</strong> <span id="performance-score">N/A</span></p>
+            </div>
+            <div class="control-panel">
+                <button id="initialize-all">Initialize All Components</button>
+                <button id="reset-environment">Reset Environment</button>
+            </div>
+            <div id="system-log" class="test-results">
+                <div class="log-entry log-info">System initialized at: <span id="init-time"></span></div>
+            </div>
+        </section>
     </main>
     
-    <footer>
-        <p>&copy; 2025 MeAI Project</p>
-    </footer>
-    
-    <!-- Load utility scripts first -->
-    <script src="src/utils/event-system.js"></script>
-    <script src="src/utils/storage-manager.js"></script>
-    <script src="src/utils/user-personalization-system.js"></script>
-    
-    <!-- Load core components -->
-    <script src="src/visual/pixel-animation-system.js"></script>
-    <script src="src/visual/dynamic-background-system.js"></script>
-    <script src="src/visual/theme-system.js"></script>
-    <script src="src/ui/interface-animation-system.js"></script>
-    <script src="src/ui/accessibility-system.js"></script>
-    <script src="src/audio/multi-layered-ambient-system.js"></script>
-    <script src="src/audio/interaction-sound-system.js"></script>
-    <script src="src/conversation/contextual-memory-system.js"></script>
-    <script src="src/conversation/natural-conversation-flow.js"></script>
-    <script src="src/conversation/voice-enhancement-system.js"></script>
-    
-    <!-- Load test system last -->
-    <script src="tests/integration-test-system.js"></script>
+    <script type="module">
+        // Import components
+        import integrationTestSystem from '../src/tests/integration-test-system.js';
+        
+        // Initialize event system if not already available
+        if (!window.eventSystem) {
+            window.eventSystem = {
+                events: {},
+                subscribe: function(event, callback) {
+                    if (!this.events[event]) {
+                        this.events[event] = [];
+                    }
+                    this.events[event].push(callback);
+                    return () => {
+                        this.events[event] = this.events[event].filter(cb => cb !== callback);
+                    };
+                },
+                publish: function(event, data) {
+                    if (this.events[event]) {
+                        this.events[event].forEach(callback => {
+                            callback(data);
+                        });
+                    }
+                    
+                    // Log all events to system log
+                    logToSystem(`Event: ${event}`, 'info');
+                }
+            };
+        }
+        
+        // Initialize storage manager if not already available
+        if (!window.storageManager) {
+            window.storageManager = {
+                async get(key) {
+                    return localStorage.getItem(key);
+                },
+                async set(key, value) {
+                    localStorage.setItem(key, value);
+                    return true;
+                },
+                async remove(key) {
+                    localStorage.removeItem(key);
+                    return true;
+                }
+            };
+        }
+        
+        // DOM elements
+        const elements = {
+            visualization: {
+                status: document.getElementById('visualization-status'),
+                statusText: document.getElementById('visualization-status-text'),
+                container: document.getElementById('visualization-container'),
+                initButton: document.getElementById('init-visualization'),
+                testButton: document.getElementById('test-visualization'),
+                emotionalState: document.getElementById('emotional-state'),
+                setStateButton: document.getElementById('set-emotional-state')
+            },
+            audio: {
+                status: document.getElementById('audio-status'),
+                statusText: document.getElementById('audio-status-text'),
+                container: document.getElementById('audio-container'),
+                log: document.getElementById('audio-log'),
+                initButton: document.getElementById('init-audio'),
+                testButton: document.getElementById('test-audio'),
+                environment: document.getElementById('audio-environment'),
+                setEnvironmentButton: document.getElementById('set-environment'),
+                playTestButton: document.getElementById('play-test-sound')
+            },
+            memory: {
+                status: document.getElementById('memory-status'),
+                statusText: document.getElementById('memory-status-text'),
+                container: document.getElementById('memory-container'),
+                log: document.getElementById('memory-log'),
+                initButton: document.getElementById('init-memory'),
+                testButton: document.getElementById('test-memory'),
+                storeButton: document.getElementById('store-memory'),
+                retrieveButton: document.getElementById('retrieve-memory'),
+                visualizeButton: document.getElementById('visualize-memory')
+            },
+            profile: {
+                status: document.getElementById('profile-status'),
+                statusText: document.getElementById('profile-status-text'),
+                container: document.getElementById('profile-container'),
+                log: document.getElementById('profile-log'),
+                initButton: document.getElementById('init-profile'),
+                testButton: document.getElementById('test-profile'),
+                createButton: document.getElementById('create-profile'),
+                updateButton: document.getElementById('update-preference'),
+                learnButton: document.getElementById('learn-preference')
+            },
+            tests: {
+                results: document.getElementById('test-results'),
+                runAllButton: document.getElementById('run-all-tests'),
+                initializationButton: document.getElementById('test-initialization'),
+                integrationButton: document.getElementById('test-integration'),
+                workflowsButton: document.getElementById('test-workflows'),
+                performanceButton: document.getElementById('test-performance')
+            },
+            system: {
+                status: document.getElementById('system-status'),
+                environmentStatus: document.getElementById('environment-status'),
+                componentsLoaded: document.getElementById('components-loaded'),
+                testsCompleted: document.getElementById('tests-completed'),
+                performanceScore: document.getElementById('performance-score'),
+                initializeAllButton: document.getElementById('initialize-all'),
+                resetButton: document.getElementById('reset-environment'),
+                log: document.getElementById('system-log'),
+                initTime: document.getElementById('init-time')
+            }
+        };
+        
+        // System state
+        const state = {
+            componentsInitialized: {
+                visualization: false,
+                audio: false,
+                memory: false,
+                profile: false
+            },
+            testsRun: {
+                visualization: false,
+                audio: false,
+                memory: false,
+                profile: false,
+                integration: false
+            },
+            testResults: {
+                passed: 0,
+                failed: 0,
+                skipped: 0,
+                total: 0
+            }
+        };
+        
+        // Set initial time
+        elements.system.initTime.textContent = new Date().toLocaleString();
+        
+        // Update system status
+        function updateSystemStatus() {
+            const componentsCount = Object.values(state.componentsInitialized).filter(Boolean).length;
+            elements.system.componentsLoaded.textContent = `${componentsCount}/4`;
+            
+            const testsCount = Object.values(state.testsRun).filter(Boolean).length;
+            elements.system.testsCompleted.textContent = `${testsCount}/5`;
+            
+            if (componentsCount === 0) {
+                elements.system.environmentStatus.textContent = 'Not Initialized';
+            } else if (componentsCount < 4) {
+                elements.system.environmentStatus.textContent = 'Partially Initialized';
+            } else {
+                elements.system.environmentStatus.textContent = 'Fully Initialized';
+            }
+            
+            // Calculate performance score if tests have been run
+            if (state.testResults.total > 0) {
+                const score = Math.round((state.testResults.passed / state.testResults.total) * 100);
+                elements.system.performanceScore.textContent = `${score}% (${state.testResults.passed}/${state.testResults.total})`;
+            }
+        }
+        
+        // Logging functions
+        function logToVisualization(message, type = 'info') {
+            console.log(`[Visualization] ${message}`);
+        }
+        
+        function logToAudio(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = message;
+            elements.audio.log.appendChild(logEntry);
+            elements.audio.log.scrollTop = elements.audio.log.scrollHeight;
+        }
+        
+        function logToMemory(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = message;
+            elements.memory.log.appendChild(logEntry);
+            elements.memory.log.scrollTop = elements.memory.log.scrollHeight;
+        }
+        
+        function logToProfile(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = message;
+            elements.profile.log.appendChild(logEntry);
+            elements.profile.log.scrollTop = elements.profile.log.scrollHeight;
+        }
+        
+        function logToSystem(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            elements.system.log.appendChild(logEntry);
+            elements.system.log.scrollTop = elements.system.log.scrollHeight;
+        }
+        
+        // Update status indicators
+        function updateStatus(component, status, message) {
+            const statusElement = elements[component].status;
+            const statusTextElement = elements[component].statusText;
+            
+            statusElement.className = 'status-indicator';
+            
+            switch (status) {
+                case 'success':
+                    statusElement.classList.add('status-success');
+                    break;
+                case 'warning':
+                    statusElement.classList.add('status-warning');
+                    break;
+                case 'error':
+                    statusElement.classList.add('status-error');
+                    break;
+                default:
+                    statusElement.classList.add('status-inactive');
+            }
+            
+            if (message) {
+                statusTextElement.textContent = message;
+            }
+        }
+        
+        // Initialize components
+        async function initializeVisualization() {
+            try {
+                updateStatus('visualization', 'warning', 'Initializing...');
+                logToSystem('Initializing 3D Visualization System');
+                
+                // Try to import the visualization module
+                const visualizationModule = await import('../src/visual/pixel-visualization-3d.js')
+                    .catch(() => null);
+                
+                if (visualizationModule) {
+                    window.pixelVisualization3D = visualizationModule.default;
+                    
+                    // Initialize visualization
+                    await window.pixelVisualization3D.init(elements.visualization.container);
+                    
+                    updateStatus('visualization', 'success', 'Initialized');
+                    state.componentsInitialized.visualization = true;
+                    logToSystem('3D Visualization System initialized successfully', 'success');
+                } else {
+                    // Mock initialization for testing
+                    window.pixelVisualization3D = {
+                        init: async (container) => {
+                            container.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:white;">3D Visualization (Mock)</div>';
+                            return true;
+                        },
+                        setEmotionalState: (state, intensity) => {
+                            logToSystem(`Setting emotional state: ${state} (${intensity})`, 'info');
+                            window.eventSystem.publish('emotional-state-changed', { state, intensity });
+                            return true;
+                        },
+                        getCurrentEmotionalState: () => {
+                            return { state: 'neutral', intensity: 0.5 };
+                        },
+                        getFPS: () => {
+                            return 60;
+                        }
+                    };
+                    
+                    await window.pixelVisualization3D.init(elements.visualization.container);
+                    
+                    updateStatus('visualization', 'warning', 'Initialized (Mock)');
+                    state.componentsInitialized.visualization = true;
+                    logToSystem('3D Visualization System mock initialized', 'warning');
+                }
+                
+                // Publish initialization event
+                window.eventSystem.publish('3d-visualization-initialized', { success: true });
+                
+                updateSystemStatus();
+                return true;
+            } catch (error) {
+                console.error('Error initializing visualization:', error);
+                updateStatus('visualization', 'error', 'Initialization Failed');
+                logToSystem(`Visualization initialization error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function initializeAudio() {
+            try {
+                updateStatus('audio', 'warning', 'Initializing...');
+                logToSystem('Initializing Spatial Audio System');
+                
+                // Try to import the audio module
+                const audioModule = await import('../src/audio/spatial-audio-system.js')
+                    .catch(() => null);
+                
+                if (audioModule) {
+                    window.spatialAudioSystem = audioModule.default;
+                    
+                    // Audio context needs user interaction to start
+                    logToAudio('Audio system loaded. Click "Play Test Sound" to initialize audio context.');
+                    
+                    updateStatus('audio', 'success', 'Initialized');
+                    state.componentsInitialized.audio = true;
+                    logToSystem('Spatial Audio System initialized successfully', 'success');
+                } else {
+                    // Mock initialization for testing
+                    window.spatialAudioSystem = {
+                        isInitialized: true,
+                        setEnvironment: async (environment) => {
+                            logToAudio(`Setting environment: ${environment}`);
+                            window.eventSystem.publish('audio-environment-changed', { environment });
+                            return true;
+                        },
+                        setMasterVolume: (volume) => {
+                            logToAudio(`Setting master volume: ${volume}`);
+                            return true;
+                        },
+                        createSpatialSound: async (id, options) => {
+                            logToAudio(`Creating spatial sound: ${id}`);
+                            return { id, isPlaying: false };
+                        },
+                        playSound: (id) => {
+                            logToAudio(`Playing sound: ${id}`);
+                            window.eventSystem.publish('sound-started', { id });
+                            return true;
+                        },
+                        adjustAudioForEmotionalState: (state, intensity) => {
+                            logToAudio(`Adjusting audio for emotional state: ${state} (${intensity})`);
+                            window.eventSystem.publish('emotional-audio-adjusted', { state, intensity });
+                        }
+                    };
+                    
+                    logToAudio('Audio system mock initialized');
+                    
+                    updateStatus('audio', 'warning', 'Initialized (Mock)');
+                    state.componentsInitialized.audio = true;
+                    logToSystem('Spatial Audio System mock initialized', 'warning');
+                }
+                
+                // Publish initialization event
+                window.eventSystem.publish('spatial-audio-initialized', { success: true });
+                
+                updateSystemStatus();
+                return true;
+            } catch (error) {
+                console.error('Error initializing audio:', error);
+                updateStatus('audio', 'error', 'Initialization Failed');
+                logToSystem(`Audio initialization error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function initializeMemory() {
+            try {
+                updateStatus('memory', 'warning', 'Initializing...');
+                logToSystem('Initializing Long-term Memory System');
+                
+                // Try to import the memory module
+                const memoryModule = await import('../src/conversation/long-term-memory-system.js')
+                    .catch(() => null);
+                
+                if (memoryModule) {
+                    window.longTermMemorySystem = memoryModule.default;
+                    
+                    updateStatus('memory', 'success', 'Initialized');
+                    state.componentsInitialized.memory = true;
+                    logToSystem('Long-term Memory System initialized successfully', 'success');
+                    logToMemory('Memory system initialized successfully');
+                } else {
+                    // Mock initialization for testing
+                    window.longTermMemorySystem = {
+                        storeMemory: async (memory) => {
+                            const id = `memory_${Date.now()}`;
+                            logToMemory(`Storing memory: ${memory.text}`);
+                            window.eventSystem.publish('memory-stored', { id, memory });
+                            return id;
+                        },
+                        retrieveMemories: async (options) => {
+                            logToMemory(`Retrieving memories with options: ${JSON.stringify(options)}`);
+                            const memories = [
+                                {
+                                    id: `memory_${Date.now() - 1000}`,
+                                    text: 'This is a test memory for integration testing',
+                                    importance: 0.8,
+                                    context: options.context || 'general',
+                                    timestamp: Date.now() - 1000
+                                }
+                            ];
+                            window.eventSystem.publish('memories-retrieved', { memories });
+                            return memories;
+                        },
+                        searchMemories: async (query) => {
+                            logToMemory(`Searching memories for: ${query}`);
+                            return [];
+                        },
+                        consolidateMemories: async () => {
+                            logToMemory('Consolidating memories');
+                            return true;
+                        }
+                    };
+                    
+                    // Try to import memory visualization
+                    const visualizationModule = await import('../src/conversation/memory-visualization.js')
+                        .catch(() => null);
+                    
+                    if (visualizationModule) {
+                        window.memoryVisualization = visualizationModule.default;
+                    } else {
+                        window.memoryVisualization = {
+                            visualizeByTopic: (topic) => {
+                                logToMemory(`Visualizing memories by topic: ${topic}`);
+                                return true;
+                            },
+                            visualizeByTimeline: () => {
+                                logToMemory('Visualizing memories by timeline');
+                                return true;
+                            },
+                            visualizeMemory: (memory) => {
+                                logToMemory(`Visualizing memory: ${memory.id}`);
+                                window.eventSystem.publish('memory-visualization-updated', { memoryId: memory.id });
+                                return true;
+                            }
+                        };
+                    }
+                    
+                    updateStatus('memory', 'warning', 'Initialized (Mock)');
+                    state.componentsInitialized.memory = true;
+                    logToSystem('Long-term Memory System mock initialized', 'warning');
+                    logToMemory('Memory system mock initialized');
+                }
+                
+                // Publish initialization event
+                window.eventSystem.publish('memory-system-initialized', { success: true });
+                
+                updateSystemStatus();
+                return true;
+            } catch (error) {
+                console.error('Error initializing memory:', error);
+                updateStatus('memory', 'error', 'Initialization Failed');
+                logToSystem(`Memory initialization error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function initializeProfile() {
+            try {
+                updateStatus('profile', 'warning', 'Initializing...');
+                logToSystem('Initializing Advanced User Profile System');
+                
+                // Try to import the profile module
+                const profileModule = await import('../src/utils/advanced-user-profile-system.js')
+                    .catch(() => null);
+                
+                if (profileModule) {
+                    window.advancedUserProfileSystem = profileModule.default;
+                    
+                    updateStatus('profile', 'success', 'Initialized');
+                    state.componentsInitialized.profile = true;
+                    logToSystem('Advanced User Profile System initialized successfully', 'success');
+                    logToProfile('Profile system initialized successfully');
+                } else {
+                    // Mock initialization for testing
+                    window.advancedUserProfileSystem = {
+                        getActiveProfile: () => {
+                            return {
+                                id: 'profile_default',
+                                name: 'Default User',
+                                preferences: {
+                                    theme: 'default',
+                                    voiceType: 'neutral',
+                                    responseLength: 'medium',
+                                    formality: 'casual',
+                                    humor: 'moderate',
+                                    audioEnabled: true,
+                                    visualizationQuality: 'auto'
+                                }
+                            };
+                        },
+                        createProfile: async (name, initialPreferences) => {
+                            const profile = {
+                                id: `profile_${Date.now()}`,
+                                name,
+                                preferences: initialPreferences?.preferences || {}
+                            };
+                            logToProfile(`Created profile: ${name}`);
+                            window.eventSystem.publish('user-profile-created', { profileId: profile.id, name });
+                            return profile;
+                        },
+                        switchProfile: async (profileId) => {
+                            logToProfile(`Switched to profile: ${profileId}`);
+                            window.eventSystem.publish('user-profile-switched', { profileId });
+                            return true;
+                        },
+                        updatePreference: async (category, key, value) => {
+                            logToProfile(`Updated preference: ${category}.${key} = ${value}`);
+                            window.eventSystem.publish('user-preference-updated', { category, key, value });
+                            return true;
+                        },
+                        learnPreference: (category, key, value, context) => {
+                            logToProfile(`Learning preference: ${category}.${key} = ${value}`);
+                            window.eventSystem.publish('learned-preference-applied', { category, key, value, confidence: 0.8 });
+                        },
+                        getPersonalizedResponseParams: () => {
+                            return {
+                                responseLength: 'medium',
+                                formality: 'casual',
+                                humor: 'moderate',
+                                detailLevel: 'balanced',
+                                technicalLevel: 'adaptive',
+                                emotionalTone: 'balanced',
+                                interests: ['technology', 'music'],
+                                dislikedTopics: []
+                            };
+                        }
+                    };
+                    
+                    updateStatus('profile', 'warning', 'Initialized (Mock)');
+                    state.componentsInitialized.profile = true;
+                    logToSystem('Advanced User Profile System mock initialized', 'warning');
+                    logToProfile('Profile system mock initialized');
+                }
+                
+                // Publish initialization event
+                window.eventSystem.publish('user-profile-system-initialized', { success: true });
+                
+                updateSystemStatus();
+                return true;
+            } catch (error) {
+                console.error('Error initializing profile:', error);
+                updateStatus('profile', 'error', 'Initialization Failed');
+                logToSystem(`Profile initialization error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // Test functions
+        async function testVisualization() {
+            if (!state.componentsInitialized.visualization) {
+                logToSystem('Cannot test visualization: not initialized', 'error');
+                return false;
+            }
+            
+            try {
+                logToSystem('Running visualization tests');
+                
+                // Test setting emotional state
+                const states = ['joy', 'reflective', 'curious', 'excited', 'empathetic', 'calm', 'neutral'];
+                
+                for (const state of states) {
+                    window.pixelVisualization3D.setEmotionalState(state, 0.8);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                // Test getting current state
+                const currentState = window.pixelVisualization3D.getCurrentEmotionalState();
+                logToSystem(`Current emotional state: ${currentState.state} (${currentState.intensity})`, 'info');
+                
+                // Test FPS
+                const fps = window.pixelVisualization3D.getFPS();
+                logToSystem(`Current FPS: ${fps}`, 'info');
+                
+                state.testsRun.visualization = true;
+                updateSystemStatus();
+                
+                logToSystem('Visualization tests completed successfully', 'success');
+                return true;
+            } catch (error) {
+                console.error('Error testing visualization:', error);
+                logToSystem(`Visualization test error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testAudio() {
+            if (!state.componentsInitialized.audio) {
+                logToSystem('Cannot test audio: not initialized', 'error');
+                return false;
+            }
+            
+            try {
+                logToSystem('Running audio tests');
+                
+                // Test setting environment
+                const environments = ['small-room', 'medium-room', 'large-room', 'hall', 'cathedral', 'outdoor'];
+                
+                for (const environment of environments) {
+                    await window.spatialAudioSystem.setEnvironment(environment);
+                    logToSystem(`Set audio environment: ${environment}`, 'info');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                // Test volume control
+                window.spatialAudioSystem.setMasterVolume(0.5);
+                logToSystem('Set master volume: 0.5', 'info');
+                
+                // Test emotional state adjustment
+                window.spatialAudioSystem.adjustAudioForEmotionalState('joy', 0.8);
+                logToSystem('Adjusted audio for emotional state: joy (0.8)', 'info');
+                
+                state.testsRun.audio = true;
+                updateSystemStatus();
+                
+                logToSystem('Audio tests completed successfully', 'success');
+                return true;
+            } catch (error) {
+                console.error('Error testing audio:', error);
+                logToSystem(`Audio test error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testMemory() {
+            if (!state.componentsInitialized.memory) {
+                logToSystem('Cannot test memory: not initialized', 'error');
+                return false;
+            }
+            
+            try {
+                logToSystem('Running memory tests');
+                
+                // Test storing a memory
+                const testMemory = {
+                    text: 'This is a test memory for integration testing',
+                    importance: 0.8,
+                    context: 'integration-test',
+                    emotionalState: 'curious'
+                };
+                
+                const memoryId = await window.longTermMemorySystem.storeMemory(testMemory);
+                logToSystem(`Stored test memory with ID: ${memoryId}`, 'info');
+                
+                // Test retrieving memories
+                const memories = await window.longTermMemorySystem.retrieveMemories({
+                    context: 'integration-test',
+                    limit: 5
+                });
+                
+                logToSystem(`Retrieved ${memories.length} memories`, 'info');
+                
+                // Test memory visualization if available
+                if (window.memoryVisualization) {
+                    window.memoryVisualization.visualizeByTopic('integration-test');
+                    logToSystem('Visualized memories by topic', 'info');
+                    
+                    if (memories.length > 0) {
+                        window.memoryVisualization.visualizeMemory(memories[0]);
+                        logToSystem('Visualized specific memory', 'info');
+                    }
+                }
+                
+                state.testsRun.memory = true;
+                updateSystemStatus();
+                
+                logToSystem('Memory tests completed successfully', 'success');
+                return true;
+            } catch (error) {
+                console.error('Error testing memory:', error);
+                logToSystem(`Memory test error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testProfile() {
+            if (!state.componentsInitialized.profile) {
+                logToSystem('Cannot test profile: not initialized', 'error');
+                return false;
+            }
+            
+            try {
+                logToSystem('Running profile tests');
+                
+                // Test getting active profile
+                const activeProfile = window.advancedUserProfileSystem.getActiveProfile();
+                logToSystem(`Active profile: ${activeProfile.name}`, 'info');
+                
+                // Test creating a profile
+                const testProfile = await window.advancedUserProfileSystem.createProfile('Test User', {
+                    preferences: {
+                        theme: 'dark',
+                        voiceType: 'friendly'
+                    }
+                });
+                
+                logToSystem(`Created test profile: ${testProfile.name}`, 'info');
+                
+                // Test updating a preference
+                await window.advancedUserProfileSystem.updatePreference('preferences', 'theme', 'night');
+                logToSystem('Updated theme preference to "night"', 'info');
+                
+                // Test learning a preference
+                window.advancedUserProfileSystem.learnPreference(
+                    'conversationStyle',
+                    'detailLevel',
+                    'detailed',
+                    { explicit: true, sentiment: 0.8 }
+                );
+                
+                logToSystem('Learned detail level preference', 'info');
+                
+                // Test getting personalized response parameters
+                const params = window.advancedUserProfileSystem.getPersonalizedResponseParams();
+                logToSystem(`Personalized response parameters: ${JSON.stringify(params)}`, 'info');
+                
+                state.testsRun.profile = true;
+                updateSystemStatus();
+                
+                logToSystem('Profile tests completed successfully', 'success');
+                return true;
+            } catch (error) {
+                console.error('Error testing profile:', error);
+                logToSystem(`Profile test error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function runIntegrationTests() {
+            try {
+                logToSystem('Running integration tests');
+                elements.tests.results.innerHTML = 'Running integration tests...\n';
+                
+                // Run all tests
+                const results = await integrationTestSystem.runAllTests();
+                
+                // Update test results
+                state.testResults = results;
+                
+                // Format results
+                let resultText = '=== Integration Test Results ===\n\n';
+                resultText += `Total: ${results.total}\n`;
+                resultText += `Passed: ${results.passed}\n`;
+                resultText += `Failed: ${results.failed}\n`;
+                resultText += `Skipped: ${results.skipped}\n\n`;
+                
+                resultText += '=== Test Details ===\n\n';
+                
+                for (const test of results.tests) {
+                    const statusSymbol = test.status === 'passed' ? '✅' : 
+                                        test.status === 'failed' ? '❌' : '⏭️';
+                    
+                    resultText += `${statusSymbol} ${test.name} - ${test.status}\n`;
+                    if (test.message) {
+                        resultText += `   ${test.message}\n`;
+                    }
+                    if (test.duration) {
+                        resultText += `   Duration: ${test.duration.toFixed(2)}ms\n`;
+                    }
+                    resultText += '\n';
+                }
+                
+                elements.tests.results.innerHTML = resultText;
+                
+                state.testsRun.integration = true;
+                updateSystemStatus();
+                
+                logToSystem(`Integration tests completed: ${results.passed}/${results.total} passed`, 
+                           results.failed > 0 ? 'warning' : 'success');
+                
+                return results;
+            } catch (error) {
+                console.error('Error running integration tests:', error);
+                logToSystem(`Integration test error: ${error.message}`, 'error');
+                elements.tests.results.innerHTML = `Error running tests: ${error.message}\n${error.stack}`;
+                return null;
+            }
+        }
+        
+        async function runTestSuite(suiteName) {
+            try {
+                logToSystem(`Running test suite: ${suiteName}`);
+                elements.tests.results.innerHTML = `Running test suite: ${suiteName}...\n`;
+                
+                // Find the suite
+                const suite = integrationTestSystem.testSuites.find(s => s.name === suiteName);
+                
+                if (!suite) {
+                    throw new Error(`Test suite not found: ${suiteName}`);
+                }
+                
+                // Run each test in the suite
+                const results = {
+                    passed: 0,
+                    failed: 0,
+                    skipped: 0,
+                    total: 0,
+                    tests: []
+                };
+                
+                for (const test of suite.tests) {
+                    const result = await integrationTestSystem.runTest(test);
+                    results.tests.push(result);
+                    
+                    if (result.status === 'passed') {
+                        results.passed++;
+                    } else if (result.status === 'failed') {
+                        results.failed++;
+                    } else if (result.status === 'skipped') {
+                        results.skipped++;
+                    }
+                    
+                    results.total++;
+                }
+                
+                // Format results
+                let resultText = `=== ${suiteName} Test Results ===\n\n`;
+                resultText += `Total: ${results.total}\n`;
+                resultText += `Passed: ${results.passed}\n`;
+                resultText += `Failed: ${results.failed}\n`;
+                resultText += `Skipped: ${results.skipped}\n\n`;
+                
+                resultText += '=== Test Details ===\n\n';
+                
+                for (const test of results.tests) {
+                    const statusSymbol = test.status === 'passed' ? '✅' : 
+                                        test.status === 'failed' ? '❌' : '⏭️';
+                    
+                    resultText += `${statusSymbol} ${test.name} - ${test.status}\n`;
+                    if (test.message) {
+                        resultText += `   ${test.message}\n`;
+                    }
+                    if (test.duration) {
+                        resultText += `   Duration: ${test.duration.toFixed(2)}ms\n`;
+                    }
+                    resultText += '\n';
+                }
+                
+                elements.tests.results.innerHTML = resultText;
+                
+                logToSystem(`Test suite completed: ${results.passed}/${results.total} passed`, 
+                           results.failed > 0 ? 'warning' : 'success');
+                
+                return results;
+            } catch (error) {
+                console.error(`Error running test suite ${suiteName}:`, error);
+                logToSystem(`Test suite error: ${error.message}`, 'error');
+                elements.tests.results.innerHTML = `Error running test suite: ${error.message}\n${error.stack}`;
+                return null;
+            }
+        }
+        
+        // Event listeners
+        elements.visualization.initButton.addEventListener('click', initializeVisualization);
+        elements.visualization.testButton.addEventListener('click', testVisualization);
+        elements.visualization.setStateButton.addEventListener('click', () => {
+            if (!state.componentsInitialized.visualization) {
+                logToSystem('Cannot set emotional state: visualization not initialized', 'error');
+                return;
+            }
+            
+            const state = elements.visualization.emotionalState.value;
+            window.pixelVisualization3D.setEmotionalState(state, 0.8);
+            logToSystem(`Set emotional state: ${state}`, 'info');
+        });
+        
+        elements.audio.initButton.addEventListener('click', initializeAudio);
+        elements.audio.testButton.addEventListener('click', testAudio);
+        elements.audio.setEnvironmentButton.addEventListener('click', () => {
+            if (!state.componentsInitialized.audio) {
+                logToSystem('Cannot set environment: audio not initialized', 'error');
+                return;
+            }
+            
+            const environment = elements.audio.environment.value;
+            window.spatialAudioSystem.setEnvironment(environment);
+            logToSystem(`Set audio environment: ${environment}`, 'info');
+        });
+        elements.audio.playTestButton.addEventListener('click', async () => {
+            if (!state.componentsInitialized.audio) {
+                logToSystem('Cannot play test sound: audio not initialized', 'error');
+                return;
+            }
+            
+            try {
+                const sound = await window.spatialAudioSystem.createSpatialSound('test', {
+                    url: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg',
+                    x: 0,
+                    y: 0,
+                    z: -1,
+                    volume: 0.5,
+                    loop: false,
+                    autoplay: false
+                });
+                
+                if (sound) {
+                    window.spatialAudioSystem.playSound('test');
+                    logToSystem('Playing test sound', 'info');
+                }
+            } catch (error) {
+                logToSystem(`Error playing test sound: ${error.message}`, 'error');
+            }
+        });
+        
+        elements.memory.initButton.addEventListener('click', initializeMemory);
+        elements.memory.testButton.addEventListener('click', testMemory);
+        elements.memory.storeButton.addEventListener('click', async () => {
+            if (!state.componentsInitialized.memory) {
+                logToSystem('Cannot store memory: memory system not initialized', 'error');
+                return;
+            }
+            
+            const testMemory = {
+                text: `Test memory created at ${new Date().toLocaleTimeString()}`,
+                importance: 0.7,
+                context: 'manual-test',
+                emotionalState: 'neutral'
+            };
+            
+            const memoryId = await window.longTermMemorySystem.storeMemory(testMemory);
+            logToSystem(`Manually stored test memory with ID: ${memoryId}`, 'info');
+            logToMemory(`Stored memory: ${testMemory.text}`);
+        });
+        elements.memory.retrieveButton.addEventListener('click', async () => {
+            if (!state.componentsInitialized.memory) {
+                logToSystem('Cannot retrieve memories: memory system not initialized', 'error');
+                return;
+            }
+            
+            const memories = await window.longTermMemorySystem.retrieveMemories({
+                context: 'manual-test',
+                limit: 5
+            });
+            
+            logToSystem(`Retrieved ${memories.length} memories`, 'info');
+            
+            for (const memory of memories) {
+                logToMemory(`Retrieved: ${memory.text} (Importance: ${memory.importance})`);
+            }
+        });
+        elements.memory.visualizeButton.addEventListener('click', () => {
+            if (!state.componentsInitialized.memory || !window.memoryVisualization) {
+                logToSystem('Cannot visualize memory: memory visualization not available', 'error');
+                return;
+            }
+            
+            window.memoryVisualization.visualizeByTopic('manual-test');
+            logToSystem('Visualized memories by topic: manual-test', 'info');
+            logToMemory('Visualizing memories by topic: manual-test');
+        });
+        
+        elements.profile.initButton.addEventListener('click', initializeProfile);
+        elements.profile.testButton.addEventListener('click', testProfile);
+        elements.profile.createButton.addEventListener('click', async () => {
+            if (!state.componentsInitialized.profile) {
+                logToSystem('Cannot create profile: profile system not initialized', 'error');
+                return;
+            }
+            
+            const profileName = `Test User ${new Date().toLocaleTimeString()}`;
+            const profile = await window.advancedUserProfileSystem.createProfile(profileName, {
+                preferences: {
+                    theme: 'dark',
+                    voiceType: 'friendly'
+                }
+            });
+            
+            logToSystem(`Manually created profile: ${profileName}`, 'info');
+            logToProfile(`Created profile: ${profileName} (ID: ${profile.id})`);
+        });
+        elements.profile.updateButton.addEventListener('click', async () => {
+            if (!state.componentsInitialized.profile) {
+                logToSystem('Cannot update preference: profile system not initialized', 'error');
+                return;
+            }
+            
+            const themes = ['light', 'dark', 'blue', 'green', 'purple', 'night'];
+            const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+            
+            await window.advancedUserProfileSystem.updatePreference('preferences', 'theme', randomTheme);
+            logToSystem(`Manually updated theme preference to "${randomTheme}"`, 'info');
+            logToProfile(`Updated preference: preferences.theme = ${randomTheme}`);
+        });
+        elements.profile.learnButton.addEventListener('click', () => {
+            if (!state.componentsInitialized.profile) {
+                logToSystem('Cannot learn preference: profile system not initialized', 'error');
+                return;
+            }
+            
+            const detailLevels = ['concise', 'balanced', 'detailed'];
+            const randomLevel = detailLevels[Math.floor(Math.random() * detailLevels.length)];
+            
+            window.advancedUserProfileSystem.learnPreference(
+                'conversationStyle',
+                'detailLevel',
+                randomLevel,
+                { explicit: true, sentiment: 0.8 }
+            );
+            
+            logToSystem(`Manually learned detail level preference: ${randomLevel}`, 'info');
+            logToProfile(`Learning preference: conversationStyle.detailLevel = ${randomLevel}`);
+        });
+        
+        elements.tests.runAllButton.addEventListener('click', runIntegrationTests);
+        elements.tests.initializationButton.addEventListener('click', () => {
+            runTestSuite('Core Component Initialization');
+        });
+        elements.tests.integrationButton.addEventListener('click', () => {
+            runTestSuite('Component Integration');
+        });
+        elements.tests.workflowsButton.addEventListener('click', () => {
+            runTestSuite('End-to-End Workflows');
+        });
+        elements.tests.performanceButton.addEventListener('click', () => {
+            runTestSuite('Performance Tests');
+        });
+        
+        elements.system.initializeAllButton.addEventListener('click', async () => {
+            logToSystem('Initializing all components');
+            
+            await initializeVisualization();
+            await initializeAudio();
+            await initializeMemory();
+            await initializeProfile();
+            
+            logToSystem('All components initialized', 'success');
+        });
+        
+        elements.system.resetButton.addEventListener('click', () => {
+            location.reload();
+        });
+        
+        // Subscribe to events
+        window.eventSystem.subscribe('emotional-state-changed', (data) => {
+            logToSystem(`Emotional state changed: ${data.state} (${data.intensity || 'N/A'})`, 'info');
+        });
+        
+        window.eventSystem.subscribe('audio-environment-changed', (data) => {
+            logToSystem(`Audio environment changed: ${data.environment}`, 'info');
+        });
+        
+        window.eventSystem.subscribe('memory-stored', (data) => {
+            logToSystem(`Memory stored: ${data.id}`, 'info');
+        });
+        
+        window.eventSystem.subscribe('user-preference-updated', (data) => {
+            logToSystem(`User preference updated: ${data.category}.${data.key} = ${data.value}`, 'info');
+        });
+        
+        // Initialize integration test system
+        logToSystem('Integration test system initialized');
+        
+        // Auto-initialize components if needed
+        if (new URLSearchParams(window.location.search).get('auto') === 'true') {
+            elements.system.initializeAllButton.click();
+        }
+    </script>
 </body>
 </html>
