@@ -2,7 +2,7 @@
 
 ## Overview
 
-The MeAi Application is a sophisticated platform that integrates with the Machine Control Protocol (MCP) to provide users with a powerful, secure, and intuitive interface for managing and interacting with connected systems. This repository contains all code, documentation, and resources for the MeAi application.
+MeAi is your human companion - a sophisticated platform that integrates with the Machine Control Protocol (MCP) to provide users with a powerful, secure, and intuitive interface for managing and interacting with connected systems. This repository contains all code, documentation, and resources for the MeAi application.
 
 ## Repository Structure
 

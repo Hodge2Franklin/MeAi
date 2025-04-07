@@ -1,0 +1,2430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MeAi Simplified</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+    }
+    
+    #meai-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1;
+    }
+    
+    #meai-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    
+    .meai-text {
+      position: absolute;
+      top: 70%; /* Moved down from 50% to 70% to avoid overlapping with the circle */
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      max-width: 80%;
+      font-size: 1.5rem;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 2;
+      background-color: rgba(0, 0, 0, 0.6); /* Added semi-transparent background */
+      padding: 15px; /* Added padding for better readability */
+      border-radius: 10px; /* Rounded corners for the background */
+    }
+    
+    .meai-choices {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 80%;
+      max-width: 300px;
+      z-index: 3;
+    }
+    
+    .meai-choice {
+      padding: 1rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .meai-choice:hover, .meai-choice:active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-ios-audio-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1rem 2rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: background-color 0.3s ease;
+    }
+    
+    .meai-ios-audio-button:hover, .meai-ios-audio-button:active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-instructions {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      width: 80%;
+      font-size: 1rem;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 2;
+    }
+    
+    .meai-admin-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      background-color: transparent;
+      border: none;
+      z-index: 5;
+      cursor: pointer;
+    }
+    
+    .meai-admin-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      border-left: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 1rem;
+      overflow-y: auto;
+      z-index: 10;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .meai-admin-panel.visible {
+      transform: translateX(0);
+    }
+    
+    .meai-admin-panel h2 {
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+    
+    .meai-admin-panel h3 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+    
+    .meai-admin-panel button {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+    }
+    
+    .meai-admin-panel button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-admin-panel .close-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      background-color: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .meai-pulse {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .meai-wave {
+      position: absolute;
+      width: 100%;
+      height: 100px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* New styles for audio initialization button */
+    .meai-audio-init-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1.5rem 2.5rem;
+      background-color: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1.3rem;
+      text-align: center;
+      cursor: pointer;
+      z-index: 20;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+    
+    .meai-audio-init-button:hover, .meai-audio-init-button:active {
+      background-color: rgba(255, 255, 255, 0.25);
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+
+    /* Audio status indicator */
+    .meai-audio-status {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 5px 10px;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 15px;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      z-index: 5;
+    }
+    
+    /* Start button for fail-safe initialization */
+    .meai-start-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1.5rem 2.5rem;
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      z-index: 30;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+    }
+    
+    .meai-start-button:hover, .meai-start-button:active {
+      background-color: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+    
+    /* Loading indicator */
+    .meai-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      z-index: 25;
+    }
+    
+    .meai-loading:after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 40px;
+      margin: 10px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      border-color: #fff transparent #fff transparent;
+      animation: meai-loading 1.2s linear infinite;
+    }
+    
+    @keyframes meai-loading {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* White circle in center */
+    .meai-circle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      background-color: #fff;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 1s ease;
+      z-index: 1;
+    }
+    
+    /* Voice recognition button and indicator */
+    .meai-voice-button {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 60px;
+      background-color: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+    
+    .meai-voice-button:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+    
+    .meai-voice-button.listening {
+      background-color: rgba(255, 100, 100, 0.3);
+      animation: pulse 1.5s infinite;
+    }
+    
+    .meai-voice-button.processing {
+      background-color: rgba(100, 100, 255, 0.3);
+    }
+    
+    .meai-voice-icon {
+      width: 24px;
+      height: 24px;
+      fill: #fff;
+    }
+    
+    .meai-voice-waves {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 5;
+    }
+    
+    .meai-voice-waves.visible {
+      opacity: 1;
+    }
+    
+    .meai-voice-wave {
+      width: 4px;
+      height: 20px;
+      margin: 0 2px;
+      background-color: rgba(255, 255, 255, 0.7);
+      border-radius: 2px;
+    }
+    
+    .meai-voice-waves.listening .meai-voice-wave {
+      animation: wave 1s infinite;
+      animation-timing-function: ease-in-out;
+    }
+    
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(1) { animation-delay: 0.0s; }
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(2) { animation-delay: 0.1s; }
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(3) { animation-delay: 0.2s; }
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(4) { animation-delay: 0.3s; }
+    .meai-voice-waves.listening .meai-voice-wave:nth-child(5) { animation-delay: 0.4s; }
+    
+    @keyframes wave {
+      0%, 100% { height: 10px; }
+      50% { height: 30px; }
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 100, 100, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(255, 100, 100, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 100, 100, 0); }
+    }
+    
+    /* Voice recognition transcript */
+    .meai-transcript {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 400px;
+      padding: 10px 15px;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 10px;
+      font-size: 1rem;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 5;
+    }
+    
+    .meai-transcript.visible {
+      opacity: 1;
+    }
+    
+    @media (max-width: 768px) {
+      .meai-text {
+        font-size: 1.2rem;
+      }
+      
+      .meai-admin-panel {
+        width: 80%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="meai-container">
+    <canvas id="meai-canvas"></canvas>
+    <div class="meai-circle" id="meai-circle"></div>
+    <div class="meai-loading" id="meai-loading"></div>
+    <button class="meai-start-button" id="meai-start-button">Begin MeAi Experience</button>
+    
+    <!-- Voice recognition elements -->
+    <button class="meai-voice-button" id="meai-voice-button">
+      <svg class="meai-voice-icon" viewBox="0 0 24 24">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </button>
+    
+    <div class="meai-voice-waves" id="meai-voice-waves">
+      <div class="meai-voice-wave"></div>
+      <div class="meai-voice-wave"></div>
+      <div class="meai-voice-wave"></div>
+      <div class="meai-voice-wave"></div>
+      <div class="meai-voice-wave"></div>
+    </div>
+    
+    <div class="meai-transcript" id="meai-transcript"></div>
+  </div>
+  
+  <!-- Include enhanced understanding module -->
+  <script src="enhanced-understanding.js"></script>
+  
+  <script>
+    // MeAi Simplified Implementation
+    (function() {
+      // Configuration
+      const config = {
+        introductionText: [
+          'Hi there!',
+          'I\'m Mia, your personal companion.',
+          'I\'m here to remember the details, people, and contexts in your life so you don\'t have to keep re-explaining.',
+          'Would you like me to use voice or just text to communicate with you?',
+          'I can help keep track of important reminders and only let you know about what matters to you.',
+          'What\'s important to you today? I\'d love to help with that.',
+          'I can help you prepare for upcoming meetings or remind you about key points from previous conversations.',
+          'I remember important details about the people in your life so you can focus on meaningful connections.',
+          'All set for now? I\'ll keep track of everything for you - just let me know when you need anything else!',
+          'Great to meet you! I\'m looking forward to being helpful.'
+        ],
+        useCases: {
+          morningConnection: {
+            name: 'Morning Connection Ritual',
+            message: "Good morning! Would you like to check in or see what's on your schedule today?",
+            color: '#F5E8C7', // Warm white
+            breathRate: 4
+          },
+          emotionalResonance: {
+            name: 'Emotional Resonance Recognition',
+            message: "How are you feeling today? I'm here to help with whatever you need.",
+            color: '#E8C7F5', // Soft purple
+            breathRate: 5
+          },
+          memoryThread: {
+            name: 'Memory Thread Recognition',
+            message: "I remember you mentioned this was important to you. Would you like me to remind you about the details?",
+            color: '#C7F5E8', // Soft teal
+            breathRate: 4
+          },
+          silentCompanionship: {
+            name: 'Silent Companionship Mode',
+            message: "I'm here whenever you need me. Just let me know how I can help.",
+            color: '#C7E8F5', // Soft blue
+            breathRate: 3
+          },
+          insightEmergence: {
+            name: 'Insight Emergence Moment',
+            message: "I noticed a pattern that might be helpful for you. Would you like to hear about it?",
+            color: '#F5F5C7', // Soft yellow
+            breathRate: 6
+          },
+          deviceHandover: {
+            name: 'Device Handover Recognition',
+            message: "Hello there! Would you like me to introduce myself?",
+            color: '#F5C7C7', // Soft red
+            breathRate: 5
+          },
+          bedtimeTransition: {
+            name: 'Bedtime Transition Ritual',
+            message: "Would you like me to help you wind down for the evening?",
+            color: '#C7C7F5', // Soft indigo
+            breathRate: 3
+          }
+        },
+        hapticPatterns: {
+          greeting: [50, 70, 80, 70, 120],
+          listening: [30, 50, 30],
+          understanding: [60, 80, 60],
+          insight: [100, 50, 150],
+          affirmation: [40, 30, 40, 30, 40],
+          curiosity: [30, 40, 50, 60],
+          transition: [70, 100, 70],
+          farewell: [100, 150, 200]
+        },
+        signaturePhrases: {
+          mirror: "Here's what I understand so far. Does that sound right?",
+          whyImHere: "I'm here to help make your day a little easier and keep track of what matters to you.",
+          farewell: "All set for now? I'll keep track of everything for you - just let me know when you need anything else!"
+        },
+        // Audio files for introduction
+        introductionAudio: [
+          'audio/intro_0.mp3',
+          'audio/intro_1.mp3',
+          'audio/intro_2.mp3',
+          'audio/intro_3.mp3',
+          'audio/intro_4.mp3',
+          'audio/intro_5.mp3',
+          'audio/intro_6.mp3',
+          'audio/intro_7.mp3',
+          'audio/intro_8.mp3',
+          'audio/intro_9.mp3'
+        ],
+        // Audio files for admin panel
+        adminAudio: [
+          'audio/admin_0.mp3',
+          'audio/admin_1.mp3'
+        ]
+      };
+      
+      // State
+      let state = {
+        currentState: 'idle', // idle, introduction, listening, responding
+        activeUseCase: null,
+        completedUseCases: {},
+        pixelProperties: {
+          color: '#FFFFFF',
+          size: 2,
+          opacity: 1,
+          breathing: false,
+          breathRate: 4,
+          visible: false
+        },
+        userPresence: {
+          isPresent: false,
+          interactionDuration: 0,
+          lastInteractionTime: 0
+        },
+        timeContext: {
+          timeOfDay: 'day',
+          isFirstMorningUse: true,
+          isNightWindDown: false,
+          lastInteractionDate: null
+        },
+        memories: [],
+        activeMemory: null,
+        featureSupport: {
+          deviceMotion: false,
+          deviceOrientation: false,
+          touchEvents: false,
+          webAudio: false,
+          speechSynthesis: false,
+          speechRecognition: false,
+          localStorage: false,
+          vibration: false,
+          isIOS: false
+        },
+        audio: {
+          initialized: false,
+          initializationAttempted: false,
+          speechInitialized: false,
+          voicesLoaded: false,
+          preloadedAudio: {},
+          currentAudio: null
+        },
+        failSafe: {
+          initialized: false,
+          startButtonShown: false,
+          circleVisible: false
+        },
+        voiceRecognition: {
+          initialized: false,
+          listening: false,
+          recognition: null,
+          transcript: '',
+          confidence: 0,
+          lastResult: null,
+          processingResponse: false,
+          autoStarted: false
+        },
+        enhancedUnderstanding: {
+          initialized: false,
+          context: null,
+          nlp: null,
+          responseGenerator: null
+        }
+      };
+      
+      // DOM Elements
+      const container = document.getElementById('meai-container');
+      const canvas = document.getElementById('meai-canvas');
+      const ctx = canvas.getContext('2d');
+      const startButton = document.getElementById('meai-start-button');
+      const loadingIndicator = document.getElementById('meai-loading');
+      const whiteCircle = document.getElementById('meai-circle');
+      const voiceButton = document.getElementById('meai-voice-button');
+      const voiceWaves = document.getElementById('meai-voice-waves');
+      const transcript = document.getElementById('meai-transcript');
+      
+      // Animation variables
+      let animationFrame = null;
+      let lastFrameTime = 0;
+      let breathPhase = 0;
+      
+      // Audio context
+      let audioContext = null;
+      let ambientSound = null;
+      
+      // Initialize
+      function init() {
+        console.log('Initializing MeAi simplified...');
+        
+        // Set canvas size
+        resizeCanvas();
+        
+        // Add resize listener
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Detect features
+        detectFeatures();
+        
+        // Create admin panel
+        createAdminPanel();
+        
+        // Add event listeners
+        addEventListeners();
+        
+        // Create audio status indicator
+        createAudioStatusIndicator();
+        
+        // Preload audio files
+        preloadAudioFiles();
+        
+        // Set up fail-safe initialization
+        setupFailSafeInitialization();
+        
+        // Initialize voice recognition
+        initializeVoiceRecognition();
+        
+        // Initialize enhanced understanding
+        initializeEnhancedUnderstanding();
+        
+        console.log('Initialization complete');
+      }
+      
+      // Initialize enhanced understanding
+      function initializeEnhancedUnderstanding() {
+        try {
+          // Check if enhanced-understanding.js is loaded
+          if (typeof ConversationContext === 'undefined' || 
+              typeof NLPProcessor === 'undefined' || 
+              typeof ResponseGenerator === 'undefined') {
+            console.error('Enhanced understanding module not loaded');
+            return false;
+          }
+          
+          // Create conversation context
+          const context = new ConversationContext();
+          
+          // Create NLP processor
+          const nlp = new NLPProcessor();
+          
+          // Create response generator
+          const responseGenerator = new ResponseGenerator(context, nlp);
+          
+          // Store in state
+          state.enhancedUnderstanding = {
+            initialized: true,
+            context: context,
+            nlp: nlp,
+            responseGenerator: responseGenerator
+          };
+          
+          console.log('Enhanced understanding initialized');
+          return true;
+        } catch (error) {
+          console.error('Error initializing enhanced understanding:', error);
+          return false;
+        }
+      }
+      
+      // Initialize voice recognition
+      function initializeVoiceRecognition() {
+        // Check if speech recognition is supported
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          console.log('Speech recognition not supported');
+          state.featureSupport.speechRecognition = false;
+          return false;
+        }
+        
+        try {
+          // Create speech recognition object
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          const recognition = new SpeechRecognition();
+          
+          // Configure recognition
+          recognition.continuous = false;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
+          
+          // Set up event handlers
+          recognition.onstart = function() {
+            console.log('Voice recognition started');
+            state.voiceRecognition.listening = true;
+            updateVoiceUI('listening');
+          };
+          
+          recognition.onresult = function(event) {
+            const result = event.results[0];
+            const transcript = result[0].transcript;
+            const confidence = result[0].confidence;
+            
+            console.log('Voice recognition result:', transcript, confidence);
+            
+            state.voiceRecognition.transcript = transcript;
+            state.voiceRecognition.confidence = confidence;
+            
+            // Update transcript UI
+            updateTranscriptUI(transcript);
+            
+            // Process final result
+            if (result.isFinal) {
+              state.voiceRecognition.lastResult = {
+                transcript: transcript,
+                confidence: confidence
+              };
+              
+              // Process the voice input
+              processVoiceInput(transcript);
+            }
+          };
+          
+          recognition.onerror = function(event) {
+            console.error('Voice recognition error:', event.error);
+            state.voiceRecognition.listening = false;
+            updateVoiceUI('idle');
+            
+            // Auto-restart if it was an error that can be recovered from
+            if (event.error === 'no-speech' || event.error === 'audio-capture' || event.error === 'network') {
+              setTimeout(() => {
+                if (state.currentState === 'listening' && !state.voiceRecognition.listening) {
+                  startVoiceRecognition();
+                }
+              }, 1000);
+            }
+          };
+          
+          recognition.onend = function() {
+            console.log('Voice recognition ended');
+            state.voiceRecognition.listening = false;
+            updateVoiceUI('idle');
+            
+            // Auto-restart if we're in listening state and not processing a response
+            if (state.currentState === 'listening' && !state.voiceRecognition.processingResponse) {
+              setTimeout(() => {
+                if (!state.voiceRecognition.listening) {
+                  startVoiceRecognition();
+                }
+              }, 500);
+            }
+          };
+          
+          // Store recognition object
+          state.voiceRecognition.recognition = recognition;
+          state.voiceRecognition.initialized = true;
+          state.featureSupport.speechRecognition = true;
+          
+          // Set up voice button
+          if (voiceButton) {
+            voiceButton.addEventListener('click', toggleVoiceRecognition);
+            voiceButton.style.display = 'none'; // Hide initially, show after introduction
+          }
+          
+          console.log('Voice recognition initialized');
+          return true;
+        } catch (error) {
+          console.error('Error initializing voice recognition:', error);
+          state.featureSupport.speechRecognition = false;
+          return false;
+        }
+      }
+      
+      // Toggle voice recognition
+      function toggleVoiceRecognition() {
+        if (!state.voiceRecognition.initialized) {
+          console.log('Voice recognition not initialized');
+          return false;
+        }
+        
+        if (state.voiceRecognition.listening) {
+          // Stop listening
+          stopVoiceRecognition();
+        } else {
+          // Start listening
+          startVoiceRecognition();
+        }
+        
+        return true;
+      }
+      
+      // Start voice recognition
+      function startVoiceRecognition() {
+        if (!state.voiceRecognition.initialized || state.voiceRecognition.listening) {
+          return false;
+        }
+        
+        try {
+          // Clear previous transcript
+          state.voiceRecognition.transcript = '';
+          updateTranscriptUI('');
+          
+          // Start recognition
+          state.voiceRecognition.recognition.start();
+          
+          // Play haptic pattern
+          playHapticPattern('listening');
+          
+          return true;
+        } catch (error) {
+          console.error('Error starting voice recognition:', error);
+          return false;
+        }
+      }
+      
+      // Stop voice recognition
+      function stopVoiceRecognition() {
+        if (!state.voiceRecognition.initialized || !state.voiceRecognition.listening) {
+          return false;
+        }
+        
+        try {
+          // Stop recognition
+          state.voiceRecognition.recognition.stop();
+          
+          return true;
+        } catch (error) {
+          console.error('Error stopping voice recognition:', error);
+          return false;
+        }
+      }
+      
+      // Process voice input with enhanced understanding
+      function processVoiceInput(text) {
+        if (state.voiceRecognition.processingResponse) {
+          return false;
+        }
+        
+        // Set processing flag
+        state.voiceRecognition.processingResponse = true;
+        
+        // Update UI
+        updateVoiceUI('processing');
+        
+        // Use enhanced understanding if available
+        if (state.enhancedUnderstanding.initialized) {
+          // Generate response using enhanced understanding
+          const result = state.enhancedUnderstanding.responseGenerator.generateResponse(text);
+          
+          // Show response after a short delay
+          setTimeout(() => {
+            // Show response text
+            showText(result.response, {
+              duration: 5000,
+              fadeIn: 500,
+              fadeOut: 1000,
+              onComplete: () => {
+                // Reset processing flag
+                state.voiceRecognition.processingResponse = false;
+                
+                // Update UI
+                updateVoiceUI('idle');
+                
+                // Clear transcript after a delay
+                setTimeout(() => {
+                  updateTranscriptUI('');
+                }, 1000);
+                
+                // Auto-restart voice recognition if we're in listening state
+                if (state.currentState === 'listening' && !state.voiceRecognition.listening) {
+                  setTimeout(() => {
+                    startVoiceRecognition();
+                  }, 500);
+                }
+              }
+            });
+            
+            // Play haptic pattern based on intent
+            if (result.intent === 'greeting') {
+              playHapticPattern('greeting');
+            } else if (result.intent === 'thanks') {
+              playHapticPattern('affirmation');
+            } else if (result.intent === 'goodbye') {
+              playHapticPattern('farewell');
+            } else {
+              playHapticPattern('understanding');
+            }
+            
+          }, 1000);
+          
+          return true;
+        } else {
+          // Fall back to basic response system
+          // Normalize text
+          const normalizedText = text.toLowerCase().trim();
+          
+          // Determine response category
+          let responseCategory = 'unknown';
+          
+          if (normalizedText.includes('hello') || normalizedText.includes('hi') || normalizedText.includes('hey')) {
+            responseCategory = 'greeting';
+          } else if (normalizedText.includes('help') || normalizedText.includes('what can you do')) {
+            responseCategory = 'help';
+          } else if (normalizedText.includes('schedule') || normalizedText.includes('calendar') || normalizedText.includes('meeting')) {
+            responseCategory = 'schedule';
+          } else if (normalizedText.includes('remind') || normalizedText.includes('remember')) {
+            responseCategory = 'reminder';
+          } else if (normalizedText.includes('thank') || normalizedText.includes('thanks')) {
+            responseCategory = 'thanks';
+          }
+          
+          // Get random response from category
+          const responses = config.voiceResponses[responseCategory];
+          const response = responses[Math.floor(Math.random() * responses.length)];
+          
+          // Show response after a short delay
+          setTimeout(() => {
+            // Show response text
+            showText(response, {
+              duration: 5000,
+              fadeIn: 500,
+              fadeOut: 1000,
+              onComplete: () => {
+                // Reset processing flag
+                state.voiceRecognition.processingResponse = false;
+                
+                // Update UI
+                updateVoiceUI('idle');
+                
+                // Clear transcript after a delay
+                setTimeout(() => {
+                  updateTranscriptUI('');
+                }, 1000);
+                
+                // Auto-restart voice recognition if we're in listening state
+                if (state.currentState === 'listening' && !state.voiceRecognition.listening) {
+                  setTimeout(() => {
+                    startVoiceRecognition();
+                  }, 500);
+                }
+              }
+            });
+            
+            // Play haptic pattern
+            playHapticPattern('affirmation');
+            
+          }, 1000);
+          
+          return true;
+        }
+      }
+      
+      // Update voice UI
+      function updateVoiceUI(status) {
+        if (!voiceButton || !voiceWaves) {
+          return false;
+        }
+        
+        // Update button
+        voiceButton.classList.remove('listening', 'processing');
+        
+        if (status === 'listening') {
+          voiceButton.classList.add('listening');
+          voiceWaves.classList.add('visible', 'listening');
+        } else if (status === 'processing') {
+          voiceButton.classList.add('processing');
+          voiceWaves.classList.add('visible');
+          voiceWaves.classList.remove('listening');
+        } else {
+          voiceWaves.classList.remove('visible', 'listening');
+        }
+        
+        return true;
+      }
+      
+      // Update transcript UI
+      function updateTranscriptUI(text) {
+        if (!transcript) {
+          return false;
+        }
+        
+        if (text) {
+          transcript.textContent = text;
+          transcript.classList.add('visible');
+        } else {
+          transcript.classList.remove('visible');
+          setTimeout(() => {
+            transcript.textContent = '';
+          }, 300);
+        }
+        
+        return true;
+      }
+      
+      // Preload audio files
+      function preloadAudioFiles() {
+        try {
+          // Preload introduction audio
+          config.introductionAudio.forEach((audioFile, index) => {
+            const audio = new Audio(audioFile);
+            audio.preload = 'auto';
+            state.audio.preloadedAudio[`intro_${index}`] = audio;
+            
+            // Add event listeners for debugging
+            audio.addEventListener('canplaythrough', () => {
+              console.log(`Audio file ${audioFile} loaded successfully`);
+            });
+            
+            audio.addEventListener('error', (e) => {
+              console.error(`Error loading audio file ${audioFile}:`, e);
+            });
+            
+            // Load the audio file
+            audio.load();
+          });
+          
+          // Preload admin audio
+          config.adminAudio.forEach((audioFile, index) => {
+            const audio = new Audio(audioFile);
+            audio.preload = 'auto';
+            state.audio.preloadedAudio[`admin_${index}`] = audio;
+            
+            // Load the audio file
+            audio.load();
+          });
+          
+          console.log('Audio files preloading started');
+          return true;
+        } catch (error) {
+          console.error('Error preloading audio files:', error);
+          return false;
+        }
+      }
+      
+      // Set up fail-safe initialization
+      function setupFailSafeInitialization() {
+        // Hide loading indicator initially
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        
+        // Add event listener to start button
+        if (startButton) {
+          startButton.addEventListener('click', function() {
+            // Hide start button
+            startButton.style.display = 'none';
+            
+            // Show loading indicator
+            if (loadingIndicator) {
+              loadingIndicator.style.display = 'block';
+            }
+            
+            // Show white circle with animation
+            if (whiteCircle) {
+              whiteCircle.style.opacity = '1';
+              state.failSafe.circleVisible = true;
+            }
+            
+            // Mark as initialized
+            state.failSafe.initialized = true;
+            
+            // Start the experience
+            setTimeout(function() {
+              // Hide loading indicator
+              if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+              }
+              
+              // Start the application
+              start();
+            }, 1000);
+          });
+          
+          // Mark as shown
+          state.failSafe.startButtonShown = true;
+        }
+        
+        // Automatically show white circle after a timeout if no interaction
+        setTimeout(function() {
+          if (!state.failSafe.initialized) {
+            console.log('No interaction detected, showing white circle as fail-safe');
+            
+            // Show white circle
+            if (whiteCircle) {
+              whiteCircle.style.opacity = '0.7';
+              state.failSafe.circleVisible = true;
+            }
+          }
+        }, 3000);
+      }
+      
+      // Create audio status indicator
+      function createAudioStatusIndicator() {
+        const statusElement = document.createElement('div');
+        statusElement.className = 'meai-audio-status';
+        statusElement.id = 'audio-status';
+        statusElement.textContent = 'Audio: Initializing...';
+        statusElement.style.display = 'none'; // Hide initially
+        container.appendChild(statusElement);
+      }
+      
+      // Update audio status indicator
+      function updateAudioStatus(status) {
+        const statusElement = document.getElementById('audio-status');
+        if (statusElement) {
+          statusElement.textContent = `Audio: ${status}`;
+          statusElement.style.display = 'block';
+          
+          // Hide after 5 seconds
+          setTimeout(() => {
+            statusElement.style.opacity = '0';
+            setTimeout(() => {
+              statusElement.style.display = 'none';
+              statusElement.style.opacity = '1';
+            }, 500);
+          }, 5000);
+        }
+      }
+      
+      // Resize canvas
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      
+      // Detect features
+      function detectFeatures() {
+        // Check device motion
+        state.featureSupport.deviceMotion = 'DeviceMotionEvent' in window;
+        
+        // Check device orientation
+        state.featureSupport.deviceOrientation = 'DeviceOrientationEvent' in window;
+        
+        // Check touch events
+        state.featureSupport.touchEvents = 'ontouchstart' in window;
+        
+        // Check web audio
+        state.featureSupport.webAudio = 'AudioContext' in window || 'webkitAudioContext' in window;
+        
+        // Check speech synthesis
+        state.featureSupport.speechSynthesis = 'speechSynthesis' in window;
+        
+        // Check speech recognition
+        state.featureSupport.speechRecognition = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+        
+        // Check local storage
+        try {
+          localStorage.setItem('test', 'test');
+          localStorage.removeItem('test');
+          state.featureSupport.localStorage = true;
+        } catch (e) {
+          state.featureSupport.localStorage = false;
+        }
+        
+        // Check vibration
+        state.featureSupport.vibration = 'vibrate' in navigator;
+        
+        // Check if iOS
+        state.featureSupport.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        
+        console.log('Feature detection complete:', state.featureSupport);
+      }
+      
+      // Add event listeners
+      function addEventListeners() {
+        // Touch events
+        document.addEventListener('touchstart', handleTouch);
+        document.addEventListener('touchmove', handleTouch);
+        document.addEventListener('touchend', handleTouch);
+        
+        // Mouse events
+        document.addEventListener('mousedown', handleMouse);
+        document.addEventListener('mousemove', handleMouse);
+        document.addEventListener('mouseup', handleMouse);
+        
+        // Device motion
+        if (state.featureSupport.deviceMotion) {
+          window.addEventListener('devicemotion', handleDeviceMotion);
+        }
+        
+        // Device orientation
+        if (state.featureSupport.deviceOrientation) {
+          window.addEventListener('deviceorientation', handleDeviceOrientation);
+        }
+      }
+      
+      // Start application
+      function start() {
+        console.log('Starting MeAi...');
+        
+        // Attempt to initialize audio
+        initializeAudio();
+        
+        // Check if introduction has been shown
+        const introShown = localStorage.getItem('meai_intro_shown') === 'true';
+        
+        if (!introShown) {
+          // Show introduction
+          showIntroduction();
+        } else {
+          // Skip to main experience
+          startMainExperience();
+        }
+      }
+      
+      // Initialize audio
+      function initializeAudio() {
+        // Mark that we've attempted initialization
+        state.audio.initializationAttempted = true;
+        
+        // Try to resume audio context
+        const audioInitialized = resumeAudioContext();
+        
+        if (audioInitialized) {
+          state.audio.initialized = true;
+          updateAudioStatus('Enabled');
+          console.log('Audio initialized successfully');
+        } else {
+          console.log('Audio initialization failed, showing button');
+          showAudioInitButton();
+        }
+        
+        return audioInitialized;
+      }
+      
+      // Show audio initialization button
+      function showAudioInitButton() {
+        // Create button if it doesn't exist
+        if (!document.getElementById('audio-init-button')) {
+          const button = document.createElement('button');
+          button.id = 'audio-init-button';
+          button.className = 'meai-audio-init-button';
+          button.textContent = 'Enable Audio Experience';
+          button.addEventListener('click', () => {
+            // Try to initialize audio again
+            const success = resumeAudioContext();
+            
+            if (success) {
+              // Remove button
+              container.removeChild(button);
+              state.audio.initialized = true;
+              updateAudioStatus('Enabled');
+              
+              // Start ambient sound
+              playAmbientSound();
+            } else {
+              // Show error message
+              button.textContent = 'Try Again';
+              updateAudioStatus('Initialization Failed');
+            }
+          });
+          container.appendChild(button);
+        }
+      }
+      
+      // Show introduction
+      function showIntroduction() {
+        console.log('Showing introduction...');
+        
+        // Transition to introduction state
+        state.currentState = 'introduction';
+        
+        // Start ambient sound immediately if audio is initialized
+        if (state.audio.initialized) {
+          playAmbientSound();
+        }
+        
+        // Check if iOS and audio needs initialization
+        if (state.featureSupport.isIOS && !state.audio.initialized) {
+          // Show audio initialization button
+          showAudioInitButton();
+          
+          // Add a listener to start the introduction sequence when audio is initialized
+          const audioInitButton = document.getElementById('audio-init-button');
+          if (audioInitButton) {
+            const originalClickHandler = audioInitButton.onclick;
+            audioInitButton.onclick = (event) => {
+              if (originalClickHandler) {
+                originalClickHandler(event);
+              }
+              
+              // Continue with introduction sequence if audio is now initialized
+              if (state.audio.initialized) {
+                showIntroductionSequence();
+              }
+            };
+          }
+        }
+        
+        // Continue with introduction sequence regardless
+        showIntroductionSequence();
+      }
+      
+      // Show introduction sequence
+      function showIntroductionSequence() {
+        // Reduced delay - Start with dark screen for just 1 second instead of 4
+        setTimeout(() => {
+          // Show single pixel
+          state.pixelProperties.visible = true;
+          startPixelAnimation();
+          
+          // Play greeting haptic pattern
+          playHapticPattern('greeting');
+          
+          // Reduced delay - Wait for just 0.5 seconds instead of 2
+          setTimeout(() => {
+            // Show introduction text
+            showIntroductionText();
+          }, 500);
+        }, 1000);
+      }
+      
+      // Show introduction text
+      function showIntroductionText() {
+        let currentIndex = 0;
+        
+        function showNextLine() {
+          if (currentIndex >= config.introductionText.length) {
+            // Show choices
+            showChoices([
+              { text: 'Voice, please', value: 'voice' },
+              { text: 'Just text for now', value: 'text' }
+            ], handleIntroductionComplete);
+            return;
+          }
+          
+          const line = config.introductionText[currentIndex];
+          
+          // Play audio file for this line
+          playAudioFile(`intro_${currentIndex}`);
+          
+          // Show text
+          showText(line, {
+            duration: 6000,
+            fadeIn: 2000,
+            fadeOut: 1500,
+            onComplete: () => {
+              // Show next line after delay
+              setTimeout(showNextLine, 500);
+            }
+          });
+          
+          currentIndex++;
+        }
+        
+        // Start showing lines
+        showNextLine();
+      }
+      
+      // Play audio file
+      function playAudioFile(audioId) {
+        try {
+          // Stop any currently playing audio
+          stopCurrentAudio();
+          
+          // Get the audio element
+          const audio = state.audio.preloadedAudio[audioId];
+          
+          if (!audio) {
+            console.error(`Audio file ${audioId} not found`);
+            return false;
+          }
+          
+          // Set volume
+          audio.volume = 1.0;
+          
+          // Play the audio
+          const playPromise = audio.play();
+          
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log(`Playing audio ${audioId}`);
+              state.audio.currentAudio = audio;
+            }).catch(error => {
+              console.error(`Error playing audio ${audioId}:`, error);
+              
+              // Try to play on user interaction
+              const playOnInteraction = () => {
+                audio.play().then(() => {
+                  console.log(`Playing audio ${audioId} after user interaction`);
+                  state.audio.currentAudio = audio;
+                  
+                  // Remove event listeners
+                  document.removeEventListener('click', playOnInteraction);
+                  document.removeEventListener('touchstart', playOnInteraction);
+                }).catch(error => {
+                  console.error(`Still couldn't play audio ${audioId}:`, error);
+                });
+              };
+              
+              document.addEventListener('click', playOnInteraction, { once: true });
+              document.addEventListener('touchstart', playOnInteraction, { once: true });
+            });
+          }
+          
+          return true;
+        } catch (error) {
+          console.error(`Error playing audio file ${audioId}:`, error);
+          return false;
+        }
+      }
+      
+      // Stop current audio
+      function stopCurrentAudio() {
+        if (state.audio.currentAudio) {
+          try {
+            state.audio.currentAudio.pause();
+            state.audio.currentAudio.currentTime = 0;
+            state.audio.currentAudio = null;
+          } catch (error) {
+            console.error('Error stopping current audio:', error);
+          }
+        }
+      }
+      
+      // Handle introduction completion
+      function handleIntroductionComplete(choice) {
+        // Mark introduction as shown
+        localStorage.setItem('meai_intro_shown', 'true');
+        
+        // Start main experience
+        startMainExperience();
+        
+        // Show message based on choice
+        if (choice.value === 'voice') {
+          showText('Great! I\'ll use voice to communicate with you. What can I help you with today?', {
+            duration: 5000,
+            fadeIn: 1500,
+            fadeOut: 1500
+          });
+        } else {
+          showText('No problem! I\'ll stick to text for now. What can I help you with today?', {
+            duration: 5000,
+            fadeIn: 1500,
+            fadeOut: 1500
+          });
+        }
+      }
+      
+      // Start main experience
+      function startMainExperience() {
+        console.log('Starting main experience...');
+        
+        // Transition to listening state
+        state.currentState = 'listening';
+        
+        // Start pixel breathing
+        state.pixelProperties.breathing = true;
+        state.pixelProperties.breathRate = 4;
+        state.pixelProperties.visible = true;
+        startPixelAnimation();
+        
+        // Play ambient sound if audio is initialized
+        if (state.audio.initialized) {
+          playAmbientSound();
+        } else {
+          // Show audio initialization button if not already shown
+          showAudioInitButton();
+        }
+        
+        // Show voice button if voice recognition is initialized
+        if (state.voiceRecognition.initialized && voiceButton) {
+          voiceButton.style.display = 'flex';
+        }
+        
+        // Update time context
+        const now = new Date();
+        const hour = now.getHours();
+        
+        let timeOfDay = 'day';
+        if (hour < 5) timeOfDay = 'night';
+        else if (hour < 12) timeOfDay = 'morning';
+        else if (hour < 17) timeOfDay = 'afternoon';
+        else if (hour < 20) timeOfDay = 'evening';
+        else timeOfDay = 'night';
+        
+        state.timeContext = {
+          timeOfDay,
+          isFirstMorningUse: timeOfDay === 'morning',
+          isNightWindDown: timeOfDay === 'night',
+          lastInteractionDate: now.toISOString()
+        };
+        
+        // Show brief instructions
+        showInstructions('Tap the microphone to talk to me', {
+          duration: 5000,
+          fadeIn: 1500,
+          fadeOut: 1500
+        });
+        
+        // Automatically start voice recognition after a short delay
+        setTimeout(() => {
+          if (state.voiceRecognition.initialized && !state.voiceRecognition.listening && !state.voiceRecognition.autoStarted) {
+            startVoiceRecognition();
+            state.voiceRecognition.autoStarted = true;
+          }
+        }, 2000);
+      }
+      
+      // Start pixel animation
+      function startPixelAnimation() {
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+        }
+        
+        function animate(timestamp) {
+          // Calculate delta time
+          const deltaTime = timestamp - lastFrameTime;
+          lastFrameTime = timestamp;
+          
+          // Clear canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw pixel if visible
+          if (state.pixelProperties.visible) {
+            drawPixel(deltaTime);
+          }
+          
+          // Request next frame
+          animationFrame = requestAnimationFrame(animate);
+        }
+        
+        // Start animation loop
+        animationFrame = requestAnimationFrame(animate);
+      }
+      
+      // Stop pixel animation
+      function stopPixelAnimation() {
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = null;
+        }
+      }
+      
+      // Draw pixel
+      function drawPixel(deltaTime) {
+        const { color, size, opacity, breathing, breathRate } = state.pixelProperties;
+        
+        // Update breath phase
+        if (breathing) {
+          breathPhase += (deltaTime / 1000) * breathRate;
+          if (breathPhase > Math.PI * 2) {
+            breathPhase -= Math.PI * 2;
+          }
+        }
+        
+        // Calculate size based on breathing
+        let currentSize = size;
+        let currentOpacity = opacity;
+        
+        if (breathing) {
+          const breathFactor = (Math.sin(breathPhase) + 1) / 2; // 0 to 1
+          currentSize = size * (1 + breathFactor * 0.5);
+          currentOpacity = opacity * (0.7 + breathFactor * 0.3);
+        }
+        
+        // Draw pixel
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.globalAlpha = currentOpacity;
+        
+        // Center of screen
+        const x = canvas.width / 2;
+        const y = canvas.height / 2;
+        
+        // Draw circle
+        ctx.beginPath();
+        ctx.arc(x, y, currentSize * 10, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add glow effect
+        const gradient = ctx.createRadialGradient(
+          x, y, currentSize * 5,
+          x, y, currentSize * 20
+        );
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        ctx.globalAlpha = currentOpacity * 0.5;
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, currentSize * 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+      }
+      
+      // Show text
+      function showText(text, options = {}) {
+        const defaults = {
+          duration: 5000,
+          fadeIn: 1000,
+          fadeOut: 1000,
+          waitForFadeOut: false,
+          onComplete: null
+        };
+        
+        const settings = { ...defaults, ...options };
+        
+        // Create text element
+        const textElement = document.createElement('div');
+        textElement.className = 'meai-text';
+        textElement.textContent = text;
+        container.appendChild(textElement);
+        
+        // Fade in
+        setTimeout(() => {
+          textElement.style.opacity = '1';
+          
+          // Fade out after duration
+          setTimeout(() => {
+            textElement.style.opacity = '0';
+            
+            // Remove element after fade out
+            setTimeout(() => {
+              if (textElement.parentNode) {
+                container.removeChild(textElement);
+              }
+              
+              // Call onComplete callback
+              if (typeof settings.onComplete === 'function') {
+                settings.onComplete();
+              }
+            }, settings.fadeOut);
+          }, settings.duration);
+        }, 10);
+        
+        return textElement;
+      }
+      
+      // Show choices
+      function showChoices(choices, callback) {
+        // Create choices container
+        const choicesContainer = document.createElement('div');
+        choicesContainer.className = 'meai-choices';
+        container.appendChild(choicesContainer);
+        
+        // Add choices
+        choices.forEach(choice => {
+          const choiceElement = document.createElement('div');
+          choiceElement.className = 'meai-choice';
+          choiceElement.textContent = choice.text;
+          choiceElement.addEventListener('click', () => {
+            // Remove choices container
+            if (choicesContainer.parentNode) {
+              container.removeChild(choicesContainer);
+            }
+            
+            // Call callback with choice
+            callback(choice);
+          });
+          choicesContainer.appendChild(choiceElement);
+        });
+        
+        return choicesContainer;
+      }
+      
+      // Show instructions
+      function showInstructions(text, options = {}) {
+        const defaults = {
+          duration: 5000,
+          fadeIn: 1000,
+          fadeOut: 1000
+        };
+        
+        const settings = { ...defaults, ...options };
+        
+        // Create instructions element
+        const instructionsElement = document.createElement('div');
+        instructionsElement.className = 'meai-instructions';
+        instructionsElement.textContent = text;
+        container.appendChild(instructionsElement);
+        
+        // Fade in
+        setTimeout(() => {
+          instructionsElement.style.opacity = '1';
+          
+          // Fade out after duration
+          setTimeout(() => {
+            instructionsElement.style.opacity = '0';
+            
+            // Remove element after fade out
+            setTimeout(() => {
+              if (instructionsElement.parentNode) {
+                container.removeChild(instructionsElement);
+              }
+            }, settings.fadeOut);
+          }, settings.duration);
+        }, 10);
+        
+        return instructionsElement;
+      }
+      
+      // Create iOS audio button
+      function createIOSAudioButton(callback) {
+        // Create button
+        const button = document.createElement('button');
+        button.className = 'meai-ios-audio-button';
+        button.textContent = 'Enable Audio Experience';
+        button.addEventListener('click', () => {
+          // Remove button
+          if (button.parentNode) {
+            container.removeChild(button);
+          }
+          
+          // Call callback
+          callback();
+        });
+        container.appendChild(button);
+        
+        return button;
+      }
+      
+      // Create pulse effect
+      function createPulseEffect(options = {}) {
+        const defaults = {
+          duration: 3000,
+          size: 200,
+          color: '#FFFFFF',
+          opacity: 0.2
+        };
+        
+        const settings = { ...defaults, ...options };
+        
+        // Create pulse element
+        const pulseElement = document.createElement('div');
+        pulseElement.className = 'meai-pulse';
+        
+        // Set initial styles
+        pulseElement.style.width = '10px';
+        pulseElement.style.height = '10px';
+        pulseElement.style.backgroundColor = settings.color;
+        pulseElement.style.opacity = settings.opacity.toString();
+        pulseElement.style.top = '50%';
+        pulseElement.style.left = '50%';
+        pulseElement.style.transform = 'translate(-50%, -50%)';
+        
+        // Add to container
+        container.appendChild(pulseElement);
+        
+        // Animate
+        const animation = pulseElement.animate([
+          { 
+            width: '10px', 
+            height: '10px', 
+            opacity: settings.opacity 
+          },
+          { 
+            width: settings.size + 'px', 
+            height: settings.size + 'px', 
+            opacity: 0 
+          }
+        ], {
+          duration: settings.duration,
+          easing: 'ease-out'
+        });
+        
+        if (animation && typeof animation.onfinish !== 'undefined') {
+          animation.onfinish = () => {
+            // Remove element
+            if (pulseElement.parentNode) {
+              container.removeChild(pulseElement);
+            }
+          };
+        } else {
+          // Fallback for browsers that don't support animation.onfinish
+          setTimeout(() => {
+            if (pulseElement.parentNode) {
+              container.removeChild(pulseElement);
+            }
+          }, settings.duration);
+        }
+        
+        return pulseElement;
+      }
+      
+      // Create wave effect
+      function createWaveEffect(options = {}) {
+        const defaults = {
+          duration: 5000,
+          height: 150,
+          color: 'rgba(255, 255, 255, 0.1)',
+          y: window.innerHeight / 2
+        };
+        
+        const settings = { ...defaults, ...options };
+        
+        // Create wave element
+        const waveElement = document.createElement('div');
+        waveElement.className = 'meai-wave';
+        
+        // Set initial styles
+        waveElement.style.backgroundColor = settings.color;
+        waveElement.style.top = settings.y + 'px';
+        waveElement.style.height = '0px';
+        
+        // Add to container
+        container.appendChild(waveElement);
+        
+        // Animate
+        const animation = waveElement.animate([
+          { height: '0px' },
+          { height: settings.height + 'px' },
+          { height: '0px' }
+        ], {
+          duration: settings.duration,
+          easing: 'ease-in-out'
+        });
+        
+        if (animation && typeof animation.onfinish !== 'undefined') {
+          animation.onfinish = () => {
+            // Remove element
+            if (waveElement.parentNode) {
+              container.removeChild(waveElement);
+            }
+          };
+        } else {
+          // Fallback for browsers that don't support animation.onfinish
+          setTimeout(() => {
+            if (waveElement.parentNode) {
+              container.removeChild(waveElement);
+            }
+          }, settings.duration);
+        }
+        
+        return waveElement;
+      }
+      
+      // Resume audio context
+      function resumeAudioContext() {
+        if (!state.featureSupport.webAudio) {
+          console.log('Web Audio not supported');
+          return false;
+        }
+        
+        try {
+          // Create audio context if it doesn't exist
+          if (!audioContext) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AudioContext();
+          }
+          
+          // Resume audio context
+          if (audioContext.state === 'suspended') {
+            audioContext.resume();
+          }
+          
+          // Check if audio context is running
+          if (audioContext.state === 'running') {
+            console.log('Audio context is running');
+            return true;
+          } else {
+            console.log('Audio context is not running:', audioContext.state);
+            return false;
+          }
+        } catch (error) {
+          console.error('Error resuming audio context:', error);
+          return false;
+        }
+      }
+      
+      // Play ambient sound
+      function playAmbientSound() {
+        if (!audioContext) {
+          console.log('No audio context available');
+          return false;
+        }
+        
+        try {
+          // Stop existing ambient sound
+          stopAmbientSound();
+          
+          // Create oscillator
+          const oscillator = audioContext.createOscillator();
+          oscillator.type = 'sine';
+          oscillator.frequency.value = 60;
+          
+          // Create gain node
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = 0.05;
+          
+          // Connect nodes
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          // Start oscillator
+          oscillator.start();
+          
+          // Store reference
+          ambientSound = {
+            oscillator,
+            gainNode
+          };
+          
+          console.log('Ambient sound started');
+          return true;
+        } catch (error) {
+          console.error('Error playing ambient sound:', error);
+          return false;
+        }
+      }
+      
+      // Stop ambient sound
+      function stopAmbientSound() {
+        if (!ambientSound) {
+          return false;
+        }
+        
+        try {
+          // Stop oscillator
+          ambientSound.oscillator.stop();
+          
+          // Clear reference
+          ambientSound = null;
+          
+          return true;
+        } catch (error) {
+          console.error('Error stopping ambient sound:', error);
+          return false;
+        }
+      }
+      
+      // Play haptic pattern
+      function playHapticPattern(patternName) {
+        if (!state.featureSupport.vibration) {
+          return false;
+        }
+        
+        try {
+          // Get pattern
+          const pattern = config.hapticPatterns[patternName];
+          
+          if (!pattern) {
+            return false;
+          }
+          
+          // Vibrate
+          navigator.vibrate(pattern);
+          
+          return true;
+        } catch (error) {
+          console.error('Error playing haptic pattern:', error);
+          return false;
+        }
+      }
+      
+      // Handle touch events
+      function handleTouch(event) {
+        // Update user presence
+        state.userPresence.isPresent = true;
+        state.userPresence.lastInteractionTime = Date.now();
+        
+        // Handle based on state
+        if (state.currentState === 'listening') {
+          // Create pulse effect
+          createPulseEffect({
+            color: '#FFFFFF',
+            opacity: 0.1,
+            size: 100,
+            duration: 2000
+          });
+        }
+        
+        // Try to initialize audio if not already initialized
+        if (!state.audio.initialized && state.audio.initializationAttempted) {
+          const success = resumeAudioContext();
+          if (success) {
+            state.audio.initialized = true;
+            updateAudioStatus('Enabled (Touch)');
+            
+            // Remove audio init button if it exists
+            const audioInitButton = document.getElementById('audio-init-button');
+            if (audioInitButton && audioInitButton.parentNode) {
+              audioInitButton.parentNode.removeChild(audioInitButton);
+            }
+            
+            // Start ambient sound
+            playAmbientSound();
+          }
+        }
+        
+        // If not initialized through fail-safe, hide start button and start
+        if (!state.failSafe.initialized && startButton && startButton.style.display !== 'none') {
+          startButton.click();
+        }
+      }
+      
+      // Handle mouse events
+      function handleMouse(event) {
+        // Update user presence
+        state.userPresence.isPresent = true;
+        state.userPresence.lastInteractionTime = Date.now();
+        
+        // If not initialized through fail-safe, hide start button and start
+        if (!state.failSafe.initialized && startButton && startButton.style.display !== 'none') {
+          startButton.click();
+        }
+      }
+      
+      // Handle device motion
+      function handleDeviceMotion(event) {
+        // Get acceleration
+        const acceleration = event.acceleration;
+        
+        // Calculate magnitude
+        const magnitude = Math.sqrt(
+          acceleration.x * acceleration.x +
+          acceleration.y * acceleration.y +
+          acceleration.z * acceleration.z
+        );
+        
+        // Handle based on magnitude
+        if (magnitude > 5) {
+          // Strong movement
+          console.log('Strong movement detected:', magnitude);
+        }
+      }
+      
+      // Handle device orientation
+      function handleDeviceOrientation(event) {
+        // Get orientation
+        const alpha = event.alpha; // Z-axis rotation
+        const beta = event.beta;   // X-axis rotation
+        const gamma = event.gamma; // Y-axis rotation
+        
+        // Handle based on orientation
+        if (beta > 80) {
+          // Device is facing up
+          console.log('Device is facing up');
+        } else if (beta < -80) {
+          // Device is facing down
+          console.log('Device is facing down');
+        }
+      }
+      
+      // Create admin panel
+      function createAdminPanel() {
+        // Create admin button
+        const adminButton = document.createElement('button');
+        adminButton.className = 'meai-admin-button';
+        adminButton.innerHTML = '⚙️';
+        container.appendChild(adminButton);
+        
+        // Create admin panel
+        const adminPanel = document.createElement('div');
+        adminPanel.className = 'meai-admin-panel';
+        container.appendChild(adminPanel);
+        
+        // Create close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'close-button';
+        closeButton.innerHTML = '×';
+        adminPanel.appendChild(closeButton);
+        
+        // Create title
+        const title = document.createElement('h2');
+        title.textContent = 'MeAi Admin Panel';
+        adminPanel.appendChild(title);
+        
+        // Create sections
+        
+        // Use Cases
+        const useCasesTitle = document.createElement('h3');
+        useCasesTitle.textContent = 'Use Cases';
+        adminPanel.appendChild(useCasesTitle);
+        
+        Object.keys(config.useCases).forEach(useCaseKey => {
+          const useCase = config.useCases[useCaseKey];
+          const button = document.createElement('button');
+          button.textContent = useCase.name;
+          button.addEventListener('click', () => {
+            // Activate use case
+            activateUseCase(useCaseKey);
+            // Hide admin panel after action
+            adminPanel.classList.remove('visible');
+          });
+          adminPanel.appendChild(button);
+        });
+        
+        // Voice Recognition
+        const voiceTitle = document.createElement('h3');
+        voiceTitle.textContent = 'Voice Recognition';
+        adminPanel.appendChild(voiceTitle);
+        
+        const startVoiceButton = document.createElement('button');
+        startVoiceButton.textContent = 'Start Voice Recognition';
+        startVoiceButton.addEventListener('click', () => {
+          startVoiceRecognition();
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(startVoiceButton);
+        
+        const stopVoiceButton = document.createElement('button');
+        stopVoiceButton.textContent = 'Stop Voice Recognition';
+        stopVoiceButton.addEventListener('click', () => {
+          stopVoiceRecognition();
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(stopVoiceButton);
+        
+        // Enhanced Understanding
+        const enhancedTitle = document.createElement('h3');
+        enhancedTitle.textContent = 'Enhanced Understanding';
+        adminPanel.appendChild(enhancedTitle);
+        
+        const testEnhancedButton = document.createElement('button');
+        testEnhancedButton.textContent = 'Test Enhanced Understanding';
+        testEnhancedButton.addEventListener('click', () => {
+          if (state.enhancedUnderstanding.initialized) {
+            const result = state.enhancedUnderstanding.responseGenerator.generateResponse("Hello, how are you today?");
+            showText(`Enhanced Understanding Test: "${result.response}" (Intent: ${result.intent}, Confidence: ${result.confidence.toFixed(2)})`, {
+              duration: 5000,
+              fadeIn: 500,
+              fadeOut: 1000
+            });
+          } else {
+            showText("Enhanced Understanding not initialized", {
+              duration: 3000,
+              fadeIn: 500,
+              fadeOut: 1000
+            });
+          }
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(testEnhancedButton);
+        
+        // System
+        const systemTitle = document.createElement('h3');
+        systemTitle.textContent = 'System';
+        adminPanel.appendChild(systemTitle);
+        
+        const resetButton = document.createElement('button');
+        resetButton.textContent = 'Reset All';
+        resetButton.addEventListener('click', () => {
+          reset();
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+          alert('All settings reset. Reload the page to restart the experience.');
+        });
+        adminPanel.appendChild(resetButton);
+        
+        const resetIntroButton = document.createElement('button');
+        resetIntroButton.textContent = 'Reset Introduction';
+        resetIntroButton.addEventListener('click', () => {
+          localStorage.removeItem('meai_intro_shown');
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+          alert('Introduction reset. Reload the page to see the introduction again.');
+        });
+        adminPanel.appendChild(resetIntroButton);
+        
+        // iOS Compatibility
+        const iosTitle = document.createElement('h3');
+        iosTitle.textContent = 'iOS Compatibility';
+        adminPanel.appendChild(iosTitle);
+        
+        const iosAudioButton = document.createElement('button');
+        iosAudioButton.textContent = 'Initialize iOS Audio';
+        iosAudioButton.addEventListener('click', () => {
+          const success = resumeAudioContext();
+          if (success) {
+            state.audio.initialized = true;
+            updateAudioStatus('Enabled (Admin)');
+            playAmbientSound();
+          }
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+          alert(success ? 'iOS audio initialized.' : 'Failed to initialize iOS audio. Try tapping the screen first.');
+        });
+        adminPanel.appendChild(iosAudioButton);
+        
+        // Voice Settings
+        const voiceSettingsTitle = document.createElement('h3');
+        voiceSettingsTitle.textContent = 'Voice Settings';
+        adminPanel.appendChild(voiceSettingsTitle);
+        
+        const testSpeechButton = document.createElement('button');
+        testSpeechButton.textContent = 'Test Speech';
+        testSpeechButton.addEventListener('click', () => {
+          playAudioFile('admin_0');
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(testSpeechButton);
+        
+        const testFemaleVoiceButton = document.createElement('button');
+        testFemaleVoiceButton.textContent = 'Test Female Voice';
+        testFemaleVoiceButton.addEventListener('click', () => {
+          playAudioFile('admin_1');
+          // Hide admin panel after action
+          adminPanel.classList.remove('visible');
+        });
+        adminPanel.appendChild(testFemaleVoiceButton);
+        
+        // Add event listeners
+        adminButton.addEventListener('click', () => {
+          adminPanel.classList.toggle('visible');
+        });
+        
+        closeButton.addEventListener('click', () => {
+          adminPanel.classList.remove('visible');
+        });
+      }
+      
+      // Activate use case
+      function activateUseCase(useCaseKey) {
+        const useCase = config.useCases[useCaseKey];
+        
+        if (!useCase) {
+          return false;
+        }
+        
+        console.log('Activating use case:', useCaseKey);
+        
+        // Set active use case
+        state.activeUseCase = useCaseKey;
+        
+        // Update pixel properties
+        state.pixelProperties.color = useCase.color;
+        state.pixelProperties.breathRate = useCase.breathRate;
+        
+        // Show message
+        showText(useCase.message, {
+          duration: 5000,
+          fadeIn: 1500,
+          fadeOut: 1500
+        });
+        
+        // Play haptic pattern
+        playHapticPattern('transition');
+        
+        // Mark as completed
+        state.completedUseCases[useCaseKey] = true;
+        
+        return true;
+      }
+      
+      // Reset
+      function reset() {
+        console.log('Resetting MeAi...');
+        
+        // Clear introduction shown flag
+        localStorage.removeItem('meai_intro_shown');
+        
+        // Stop any playing audio
+        stopCurrentAudio();
+        
+        // Stop voice recognition
+        if (state.voiceRecognition.listening) {
+          stopVoiceRecognition();
+        }
+        
+        // Reset state
+        state = {
+          currentState: 'idle',
+          activeUseCase: null,
+          completedUseCases: {},
+          pixelProperties: {
+            color: '#FFFFFF',
+            size: 2,
+            opacity: 1,
+            breathing: false,
+            breathRate: 4,
+            visible: false
+          },
+          userPresence: {
+            isPresent: false,
+            interactionDuration: 0,
+            lastInteractionTime: 0
+          },
+          timeContext: {
+            timeOfDay: 'day',
+            isFirstMorningUse: true,
+            isNightWindDown: false,
+            lastInteractionDate: null
+          },
+          memories: [],
+          activeMemory: null,
+          featureSupport: { ...state.featureSupport },
+          audio: {
+            initialized: false,
+            initializationAttempted: false,
+            speechInitialized: false,
+            voicesLoaded: false,
+            preloadedAudio: state.audio.preloadedAudio,
+            currentAudio: null
+          },
+          failSafe: {
+            initialized: false,
+            startButtonShown: false,
+            circleVisible: false
+          },
+          voiceRecognition: {
+            initialized: state.voiceRecognition.initialized,
+            listening: false,
+            recognition: state.voiceRecognition.recognition,
+            transcript: '',
+            confidence: 0,
+            lastResult: null,
+            processingResponse: false,
+            autoStarted: false
+          },
+          enhancedUnderstanding: {
+            initialized: false,
+            context: null,
+            nlp: null,
+            responseGenerator: null
+          }
+        };
+        
+        // Stop pixel animation
+        stopPixelAnimation();
+        
+        // Stop ambient sound
+        stopAmbientSound();
+        
+        // Remove darkened class
+        document.body.classList.remove('meai-darkened');
+        
+        // Clear container
+        const elementsToKeep = [canvas, startButton, loadingIndicator, whiteCircle, voiceButton, voiceWaves, transcript];
+        
+        Array.from(container.children).forEach(child => {
+          if (!elementsToKeep.includes(child)) {
+            container.removeChild(child);
+          }
+        });
+        
+        // Show start button again
+        if (startButton) {
+          startButton.style.display = 'block';
+        }
+        
+        // Hide loading indicator
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        
+        // Hide white circle
+        if (whiteCircle) {
+          whiteCircle.style.opacity = '0';
+        }
+        
+        // Hide voice button
+        if (voiceButton) {
+          voiceButton.style.display = 'none';
+        }
+        
+        // Hide voice waves
+        if (voiceWaves) {
+          voiceWaves.classList.remove('visible', 'listening');
+        }
+        
+        // Hide transcript
+        if (transcript) {
+          transcript.classList.remove('visible');
+          transcript.textContent = '';
+        }
+        
+        return true;
+      }
+      
+      // Initialize on page load
+      window.addEventListener('load', init);
+    })();
+  </script>
+</body>
+</html>
